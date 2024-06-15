@@ -46,7 +46,7 @@ const fetchFavorites = async () => {
 const addToFavorite = async (item) => {
   item.isFavorite = !item.isFavorite
 
-  console.log(item);
+  console.log(item)
 }
 
 const fetchItems = async () => {
@@ -114,7 +114,7 @@ provide('addToFavorite', addToFavorite)
         </div>
       </div>
       <div class="mt-10">
-        <CardList :items="items" />
+        <CardList :items="items" @addToFavorite="addToFavorite" />
       </div>
     </div>
   </div>
