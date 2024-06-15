@@ -44,9 +44,20 @@ const fetchFavorites = async () => {
 }
 
 const addToFavorite = async (item) => {
-  item.isFavorite = !item.isFavorite
+  if (!item.isFavorite) {
+    try {
+      const obj = {
+        productId: item.id
+      };
+      const { data } = await axios.post(`https://6e08a32863a3f798.mokky.dev/favorites`, obj);
+      
+      item.isFavorite = true;
 
-  console.log(item);
+      console.log(data);
+    } catch (err) {
+      console.log(err)
+    }
+  }
 }
 
 const fetchItems = async () => {
@@ -114,7 +125,7 @@ provide('addToFavorite', addToFavorite)
         </div>
       </div>
       <div class="mt-10">
-        <CardList :items="items" />
+        <CardList :items="items" @addToFavorite="addToFavorite"/>
       </div>
     </div>
   </div>

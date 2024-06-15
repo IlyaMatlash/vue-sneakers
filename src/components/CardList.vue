@@ -17,10 +17,14 @@ const emit = defineEmits(['addToFavorite'])
       :title="item.title"
       :image-url="item.imageUrl"
       :price="item.price"
-      @click-add="onClickAdd"
+      
       :on-click-favorite="() => emit('addToFavorite', item)"
-      :is-added="false"
+      
       :is-favorite="item.isFavorite"
     />
   </div>
 </template>
+
+
+<!-- @click-add="onClickAdd" -->
+<!-- :is-added="false" -->
