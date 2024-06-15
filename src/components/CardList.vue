@@ -20,7 +20,7 @@ const onClickAdd = () => {
     :price="item.price"
     @click-add="onClickAdd" 
     :is-added="false" 
-    :is-favorite="false"
+    :is-favorite="item.isFavorite"
     />
   </div>
 </template>
