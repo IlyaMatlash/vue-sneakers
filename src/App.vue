@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, reactive, watch } from 'vue'
+import { onMounted, ref, reactive, provide, watch } from 'vue'
 import axios from 'axios'
 
 import Header from './components/Header.vue'
@@ -24,29 +24,29 @@ const onChangeSearchInput = (event) => {
 const fetchFavorites = async () => {
   try {
     const { data: favorites } = await axios.get(`https://6e08a32863a3f798.mokky.dev/favorites`)
-    
-    items.value = items.value.map(item => {
-      const favorite = favorites.find(favorite => favorite.productId === item.id);
+
+    items.value = items.value.map((item) => {
+      const favorite = favorites.find((favorite) => favorite.productId === item.id)
 
       if (!favorite) {
-        return item;
+        return item
       }
 
       return {
         ...item,
         isFavorite: true,
-        favoriteId: favorite.id,
+        favoriteId: favorite.id
       }
     })
-
-    console.log(items.value)
   } catch (error) {
     console.log(error)
   }
 }
 
 const addToFavorite = async (item) => {
-  item.isFavorite = true
+  item.isFavorite = !item.isFavorite
+
+  console.log(item);
 }
 
 const fetchItems = async () => {
@@ -73,10 +73,12 @@ const fetchItems = async () => {
 }
 
 onMounted(async () => {
-  await fetchItems();
-  await fetchFavorites();
+  await fetchItems()
+  await fetchFavorites()
 })
 watch(filters, fetchItems)
+
+provide('addToFavorite', addToFavorite)
 </script>
 
 <template>
