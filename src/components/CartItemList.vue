@@ -9,10 +9,10 @@ const { cart, removeFromCart } = inject('cart')
   <div class="flex flex-col flex-1 gap-4" v-auto-animate>
     <CartItem
       v-for="item in cart"
-      :key="item.id"
-      :title="item.title"
-      :price="item.price"
-      :image-url="item.imageUrl"
+      :key="item.ProductId"
+      :name="item.Name"
+      :price="item.Price"
+      :image="item.Image"
       @on-click-remove="() => removeFromCart(item)"
     />
   </div>

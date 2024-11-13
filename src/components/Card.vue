@@ -1,9 +1,10 @@
 <script setup>
 const props = defineProps({
-  id: Number,
-  title: String,
-  imageUrl: String,
-  price: Number,
+  Productid: Number,
+  Name: String,
+  Description: String,
+  Image: String,
+  Price: Number,
   isFavorite: Boolean,
   isAdded: Boolean,
   onClickAdd: Function,
@@ -24,13 +25,13 @@ const visibleFavoriteButton = Boolean(props.onClickAdd)
       class="absolute top-8 left-8 mb-5"
       alt="Like"
     />
-    <img class="w-full" :src="imageUrl" alt="Sneaker" />
-    <p class="mt-2">{{ title }}</p>
+    <img class="w-full" :src="Image" alt="Sneaker" />
+    <p class="mt-2">{{ Name }}</p>
 
     <div class="flex justify-between mt-5">
       <div class="flex flex-col">
         <span class="text-slate-400">Цена:</span>
-        <b>{{ price }} руб.</b>
+        <b>{{ Price }} руб.</b>
       </div>
       <img v-if="onClickFavorite" @click="onClickAdd" :src="!isAdded ? '/plus.svg' : '/checked.svg'" alt="Plus" />
     </div>

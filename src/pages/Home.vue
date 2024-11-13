@@ -9,7 +9,7 @@ const { cart, addToCart, removeFromCart } = inject('cart')
 const items = ref([])
 
 const filters = reactive({
-  sortBy: 'title',
+  sortBy: 'Name',
   searchQuery: ''
 })
 
@@ -69,10 +69,10 @@ const fetchItems = async () => {
     }
 
     if (filters.searchQuery) {
-      params.title = `*${filters.searchQuery}*`
+      params.name = `*${filters.searchQuery}*`
     }
 
-    const { data } = await axios.get(`https://6e08a32863a3f798.mokky.dev/items`, {
+    const { data } = await axios.get(`http://localhost:41109/api/product`, {
       params
     })
     items.value = data.map((obj) => ({
