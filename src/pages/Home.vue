@@ -72,7 +72,7 @@ const fetchItems = async () => {
       params.name = `*${filters.searchQuery}*`
     }
 
-    const { data } = await axios.get(`http://localhost:41109/api/product`, {
+    const { data } = await axios.get(`http://localhost:5072/api/product`, {
       params
     })
     items.value = data.map((obj) => ({
@@ -85,6 +85,7 @@ const fetchItems = async () => {
     console.log(error)
   }
 }
+
 
 const onClickAddPlus = (item) => {
   if (!item.isAdded) {
@@ -117,6 +118,10 @@ watch(cart, () => {
   }))
 })
 
+// watch(items, () => {
+//   console.log('Items updated:', items)
+// })
+
 
 watch(filters, fetchItems)
 </script>
@@ -132,9 +137,9 @@ watch(filters, fetchItems)
         name=""
         id=""
       >
-        <option value="name">По Названию</option>
-        <option value="price">По цене (дешевые)</option>
-        <option value="-price">По цене (дорогие)</option>
+        <option value="Name">По Названию</option>
+        <option value="Price">По цене (дешевые)</option>
+        <option value="-Price">По цене (дорогие)</option>
       </select>
 
       <div class="relative">

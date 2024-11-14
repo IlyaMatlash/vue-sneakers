@@ -8,6 +8,7 @@ using System.Data;
 using System.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using myApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace myApi.Controllers
 {
@@ -40,14 +41,32 @@ namespace myApi.Controllers
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
+                    if (myReader.HasRows)
+                    {
+                        table.Load(myReader);
+                    }
+                    else
+                    {
+                        // Обработка ситуации, когда нет данных в reader-е
+                        return new JsonResult("Нет данных");
+                    }
                     myReader.Close();
                     myCon.Close();
                 }
             }
 
-            return new JsonResult(table);
+            if (table.Rows.Count > 0)
+            {
+                // Обработка ситуации, когда есть данные в таблице
+                return new JsonResult(table);
+            }
+            else
+            {
+                // Обработка ситуации, когда нет данных в таблице
+                return new JsonResult("Нет данных");
+            }
         }
+
 
         [HttpPost]
         public JsonResult Post(Product product)
