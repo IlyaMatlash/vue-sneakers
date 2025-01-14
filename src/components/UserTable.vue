@@ -4,9 +4,7 @@
     <button
       type="button"
       class="rounded-lg py-2 px-4 mb-4 bg-green-200 hover:bg-green-300 transition duration-300 font-medium"
-      data-bs-toggle="modal"
-      data-bs-target="#userModal"
-      @click="showModal = true"
+      @click="openAddModal"
     >
       Добавить пользователя
     </button>
@@ -93,14 +91,22 @@
           </button>
         </div>
         <div class="modal-body mb-8">
-          <form>
+          <form @submit.prevent="editedRow ? updateRow() : createRow()">
             <div class="mb-4" v-for="(header, index) in headerItemsUser.slice(1)" :key="index">
               <label :for="header" class="block text-gray-700 text-sm font-bold mb-2">{{
                 header
               }}</label>
               <input
-                v-if="header !== 'Role'"
+                v-if="header !== 'Role' && header !== 'Password'"
                 type="text"
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                :id="header"
+                :placeholder="header"
+                v-model="formData[header]"
+              />
+              <input
+                v-else-if="header === 'Password'"
+                type="password"
                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 :id="header"
                 :placeholder="header"
@@ -110,6 +116,7 @@
                 v-else
                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 :id="header"
+                v-model="formData[header]"
               >
                 <option value="admin">admin</option>
                 <option value="user">user</option>
@@ -140,10 +147,16 @@
 </template>
 
 <script setup>
-import { defineProps, ref, onMounted } from 'vue'
+import { defineProps, ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const showModal = ref(false)
+const editedRow = ref(null)
+const newRow = ref(null)
+
+const formData = computed(() => {
+  return editedRow.value ? editedRow.value : newRow.value
+})
 
 const props = defineProps({
   rowsUser: Array,
@@ -155,15 +168,13 @@ const props = defineProps({
   deleteRow: Function
 })
 
-const formData = ref({})
-
 const rowsUser = ref(props.rowsUser)
 const headerItemsUser = ref(props.headerItemsUser)
 
 onMounted(async () => {
   try {
     const response = await axios.get(`http://localhost:5072/api/user`)
-    headerItemsUser.push(...Object.keys(response.data[0]))
+    headerItemsUser.push(...response.data)
   } catch (error) {
     console.error(error)
   }
@@ -173,29 +184,77 @@ const emit = defineEmits(['createRow', 'updateRow', 'deleteRow'])
 
 const createRow = async () => {
   try {
-    const formData = new FormData(document.querySelector('#userModal form'))
-    const response = await axios.post(`http://localhost:5072/api/user`, formData)
-    rowsUser.push(response.data)
+    const formData = new FormData()
+    formData.append('Firstname', newRow.value.Firstname)
+    formData.append('LastName', newRow.value.LastName)
+    formData.append('Patronymic', newRow.value.Patronymic)
+    formData.append('Email', newRow.value.Email)
+    formData.append('Password', newRow.value.Password)
+    formData.append('Role', newRow.value.Role)
+    const response = await axios.post(`http://localhost:5072/api/user`, formData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    editedRow.value = null
     showModal.value = false
   } catch (error) {
     console.error(error)
   }
 }
 
-const updateRow = async (row) => {
+const updateRow = async () => {
   try {
-    const response = await axios.put(`http://localhost:5072/api/user/${row.UserId}`, {
-      Firstname: row.Firstname,
-      LastName: row.LastName,
-      Patronymic: row.Patronymic,
-      Email: row.Email,
-      Password: row.Password,
-      Role: row.Role
+    const formData = new FormData()
+    formData.append('UserId', editedRow.value.UserId)
+    formData.append('Firstname', editedRow.value.Firstname)
+    formData.append('LastName', editedRow.value.LastName)
+    formData.append('Patronymic', editedRow.value.Patronymic)
+    formData.append('Email', editedRow.value.Email)
+    formData.append('Password', editedRow.value.Password)
+    formData.append('Role', editedRow.value.Role)
+    const response = await axios.put(`http://localhost:5072/api/user/`, formData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     })
-    const index = props.rowsUser.findIndex((r) => r.id === row.UserId)
-    props.rowsUser.splice(index, 1, response.data)
+    if (response.data instanceof Object && response.data.id) {
+      const index = rowsProduct.value.findIndex((r) => r.id === editedRow.value.id)
+      rowsProduct.value.splice(index, 1, response.data)
+    } else {
+      console.log('Продукт успешно обновлен!')
+    }
+    showModal.value = false
+    editedRow.value = null
   } catch (error) {
     console.error(error)
+  }
+}
+
+const openAddModal = () => {
+  newRow.value = {
+    Firstname: '',
+    LastName: '',
+    Patronymic: '',
+    Email: '',
+    Password: '',
+    Role: ''
+  }
+  editedRow.value = null
+  showModal.value = true
+}
+
+const editRow = (row) => {
+  editedRow.value = { ...row }
+  newRow.value = null
+  showModal.value = true
+}
+
+const deleteRowAlert = (row) => {
+  if (
+    confirm(`Вы точно хотите удалить запись ${row.LastName} ${row.Firstname} ${row.Patronymic}?`)
+  ) {
+    deleteRow(row)
   }
 }
 

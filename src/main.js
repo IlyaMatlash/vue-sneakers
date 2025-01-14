@@ -7,13 +7,15 @@ import App from './App.vue'
 import Home from './pages/Home.vue'
 import Favorites from './pages/Favorites.vue'
 import Admin from './pages/Admin.vue'
+import Users from './pages/Users.vue'
 
 const app = createApp(App)
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
   { path: '/favorites', name: 'Favorites', component: Favorites },
-  { path: '/admin', name: 'Admin', component: Admin }
+  { path: '/admin', name: 'Admin', component: Admin },
+  { path: '/users', name: 'Users', component: Users }
 ]
 
 const router = createRouter({
