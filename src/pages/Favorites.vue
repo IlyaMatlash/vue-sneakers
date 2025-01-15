@@ -23,9 +23,9 @@ onMounted(async () => {
   <div>
     <InfoBlock
     v-if="!is-favorites"
-    title="Закладок нет :("
-    description="Вы ничего не добавляли в закладки"
-    image-url="/emoji-1.png"
+    Title="Закладок нет :("
+    Description="Вы ничего не добавляли в закладки"
+    Image="/emoji-1.png"
   />
   <CardList :items="favorites" is-favorites />
   </div>

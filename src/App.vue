@@ -10,7 +10,7 @@ const cart = ref([])
 const drawerOpen = ref(false)
 
 
-const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.price, 0))
+const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.Price, 0))
 const vatPrice = computed(() => Math.round((totalPrice.value * 5) / 100))
 
 const closeDrawer = () => {

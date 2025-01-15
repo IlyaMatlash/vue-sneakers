@@ -10,9 +10,9 @@ const { cart, removeFromCart } = inject('cart')
     <CartItem
       v-for="item in cart"
       :key="item.id"
-      :name="item.name"
-      :price="item.price"
-      :image="item.image"
+      :Name="item.Name"
+      :Price="item.Price"
+      :Image="item.Image"
       @on-click-remove="() => removeFromCart(item)"
     />
   </div>

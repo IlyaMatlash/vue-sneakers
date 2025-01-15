@@ -106,7 +106,7 @@ onMounted(async () => {
 
   items.value = items.value.map((item) => ({
     ...item,
-    isAdded: cart.value.some((cartItem) => cartItem.id === item.id)
+    isAdded: cart.value.some((cartItem) => cartItem.Productid === item.id)
   }))
 })
 
@@ -116,6 +116,7 @@ watch(cart, () => {
     ...item,
     isAdded: false
   }))
+  console.log('Items updated:', items)
 })
 
 // watch(items, () => {
