@@ -12,7 +12,7 @@ defineProps({
 
 <template>
   <div class="flex border border-slate-200 p-4 rounded-xl gap-4">
-    <img class="w-16 h-16" :src="Image" :alt="Name" />
+    <img class="w-20 h-16" :src="Image" :alt="Name" />
 
     <div class="flex flex-col flex-1">
       <p>{{ Name }}</p>

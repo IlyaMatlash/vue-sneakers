@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue'
 import CardList from '../components/CardList.vue'
+import CardModal from '../components/CardModal.vue';
 import axios from 'axios'
 import { inject } from 'vue'
 
@@ -24,41 +25,43 @@ const onChangeSearchInput = (event) => {
 const addToFavorite = async (item) => {
   try {
     if (!item.isFavorite) {
-      const obj = {
-        item_id: item.id
+      const response = await axios.post('http://localhost:5072/api/favorite', {
+        UserId: 1,
+        ProductId: item.ProductId
+      })
+      
+      if (response.data.id) {
+        item.isFavorite = true
+        item.FavoriteId = response.data.id
+        localStorage.setItem(`favorite_${item.ProductId}`, 'true')
       }
-      item.isFavorite = true
-      const { data } = await axios.post(`https://6e08a32863a3f798.mokky.dev/favorites`, obj)
-      item.favoriteId = data.id
     } else {
+      await axios.delete(`http://localhost:5072/api/favorite/${item.FavoriteId}`)
       item.isFavorite = false
-      await axios.delete(`https://6e08a32863a3f798.mokky.dev/favorites/${item.favoriteId}`)
-      item.favoriteId = null
+      item.FavoriteId = null
+      localStorage.removeItem(`favorite_${item.ProductId}`)
     }
   } catch (err) {
-    console.log(err)
+    console.error('Error toggling favorite:', err)
   }
 }
 
 const fetchFavorites = async () => {
   try {
-    const { data: favorites } = await axios.get(`https://6e08a32863a3f798.mokky.dev/favorites`)
-
+    const { data } = await axios.get('http://localhost:5072/api/favorite')
+    
     items.value = items.value.map((item) => {
-      const favorite = favorites.find((favorite) => favorite.item_id === item.id)
-
-      if (!favorite) {
-        return item
-      }
-
+      const favorite = data.find(f => f.ProductId === item.ProductId)
+      const isFavorite = favorite || localStorage.getItem(`favorite_${item.ProductId}`) === 'true'
+      
       return {
         ...item,
-        isFavorite: true,
-        favoriteId: favorite.id
+        isFavorite: isFavorite,
+        FavoriteId: favorite ? favorite.FavoriteId : null
       }
     })
   } catch (error) {
-    console.log(error)
+    console.error('Error fetching favorites:', error)
   }
 }
 
@@ -86,19 +89,22 @@ const fetchItems = async () => {
   }
 }
 
+const openCardModal = () => {
+  modalIsOpen.value = true
+}
 
 const onClickAddPlus = (item) => {
   if (!item.isAdded) {
     addToCart(item)
+    item.isAdded = true
   } else {
     removeFromCart(item)
+    item.isAdded = false
   }
-
-  console.log(cart)
 }
 
 onMounted(async () => {
-  const localCart = localStorage.getItem('cart')
+  const localCart = localStorage.getItem('cartItems')
   cart.value = localCart ? JSON.parse(localCart) : []
 
   await fetchItems()
@@ -106,22 +112,24 @@ onMounted(async () => {
 
   items.value = items.value.map((item) => ({
     ...item,
-    isAdded: cart.value.some((cartItem) => cartItem.Productid === item.id)
+    isAdded: cart.value.some(cartItem => cartItem.ProductId === item.ProductId)
   }))
+  window.addEventListener('cart-item-removed', (event) => {
+    const productId = event.detail.productId;
+    const item = items.value.find(i => i.ProductId === productId);
+    if (item) {
+      item.isAdded = false;
+    }
+  });
 })
 
 
-watch(cart, () => {
+watch(cart, (newCart) => {
   items.value = items.value.map((item) => ({
     ...item,
-    isAdded: false
+    isAdded: newCart.some(cartItem => cartItem.ProductId === item.ProductId)
   }))
-  console.log('Items updated:', items)
 })
-
-// watch(items, () => {
-//   console.log('Items updated:', items)
-// })
 
 
 watch(filters, fetchItems)
@@ -129,7 +137,7 @@ watch(filters, fetchItems)
 
 <template>
   <div class="flex justify-between items-center">
-    <h2 class="text-3xl font-bold mb-8">Все кроссовки</h2>
+    <h2 class="text-3xl font-bold font-signate">Все кроссовки</h2>
 
     <div class="flex gap-4">
       <select
@@ -139,8 +147,8 @@ watch(filters, fetchItems)
         id=""
       >
         <option value="Name">По Названию</option>
-        <option value="Price">По цене (дешевые)</option>
-        <option value="-Price">По цене (дорогие)</option>
+        <option value="Price">Цена по убыванию</option>
+        <option value="-Price">Цена по возрастанию</option>
       </select>
 
       <div class="relative">
@@ -155,6 +163,6 @@ watch(filters, fetchItems)
     </div>
   </div>
   <div class="mt-10">
-    <CardList :items="items" @add-to-favorite="addToFavorite" @add-to-cart="onClickAddPlus" />
+    <CardList :items="items" @open-card-modal="openCardModal" @add-to-favorite="addToFavorite" @add-to-cart="onClickAddPlus" />
   </div>
 </template>

@@ -1,17 +1,14 @@
 <script setup>
-import { ref, provide, watch, computed } from 'vue'
-
-
+import { ref, provide, watch, computed, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import Drawer from './components/Drawer.vue'
 
 // Корзина (START)
 const cart = ref([])
 const drawerOpen = ref(false)
-
-
 const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.Price, 0))
-const vatPrice = computed(() => Math.round((totalPrice.value * 5) / 100))
+const vatPrice = computed(() => Math.round((totalPrice.value * 20) / 100))
+const cartItemsCount = computed(() => cart.value.length)
 
 const closeDrawer = () => {
   drawerOpen.value = false
@@ -21,24 +18,65 @@ const openDrawer = () => {
 }
 
 const addToCart = (item) => {
-  cart.value.push(item)
-  item.isAdded = true
+  if (!item || !item.ProductId) {
+    console.error('Invalid item provided to addToCart');
+    return;
+  }
+  if (!cart.value.some(cartItem => cartItem.ProductId === item.ProductId)) {
+    cart.value.push(item);
+    item.isAdded = true;
+    localStorage.setItem('cartItems', JSON.stringify(cart.value));
+    localStorage.setItem(`cartItem_${item.ProductId}`, 'true');
+  }
 }
-
 const removeFromCart = (item) => {
-  cart.value.splice(cart.value.indexOf(item), 1)
-  item.isAdded = false
+  if (!item || !item.ProductId) {
+    console.error('Invalid item provided to removeFromCart');
+    return;
+  }
+  try {
+    cart.value = cart.value.filter(cartItem => cartItem.ProductId !== item.ProductId);
+    
+    // Update isAdded state in all relevant components
+    const event = new CustomEvent('cart-item-removed', { 
+      detail: { productId: item.ProductId }
+    });
+    window.dispatchEvent(event);
+    
+    if (cart.value.length === 0) {
+      localStorage.removeItem('cartItems');
+    } else {
+      localStorage.setItem('cartItems', JSON.stringify(cart.value));
+    }
+    localStorage.removeItem(`cartItem_${item.ProductId}`);
+  } catch (error) {
+    console.error('Error removing item from cart:', error);
+  }
 }
 
 watch(
   cart,
-  () => {
-    localStorage.setItem('cart', JSON.stringify(cart.value))
+  (newCart) => {
+    if (newCart.length === 0) {
+      localStorage.removeItem('cartItems');
+    } else {
+      localStorage.setItem('cartItems', JSON.stringify(newCart));
+    }
   },
-  {
-    deep: true
-  }
+  { deep: true }
 )
+
+onMounted(() => {
+  const savedCart = localStorage.getItem('cartItems')
+  if (savedCart) {
+    cart.value = JSON.parse(savedCart)
+    cart.value.forEach(item => {
+      if (localStorage.getItem(`cartItem_${item.ProductId}`) === 'true') {
+        item.isAdded = true
+      }
+    })
+  }
+})
 
 provide('cart', {
   cart,
@@ -57,8 +95,8 @@ provide('cart', {
     :total-price="totalPrice"
     :vat-price="vatPrice"
   />
-  <div class="bg-white w-4/5 m-auto rounded-xl shadow-xl mt-14">
-    <Header :total-price="totalPrice" @open-drawer="openDrawer" />
+  <div class="bg-white m-auto rounded-xl shadow-xl mt-14">
+    <Header :cart-items-count="cartItemsCount" @open-drawer="openDrawer" />
 
     <div class="p-10">
       <router-view></router-view>
