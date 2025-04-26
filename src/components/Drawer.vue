@@ -85,7 +85,11 @@ const isFormValid = computed(() => {
 
       <div v-else>
         <CartItemList />
-
+        <div class="flex gap-2 mt-4">
+            <span>Итого:</span>
+            <div class="flex-1 border-b border-dashed"></div>
+            <b>{{ totalPrice }} руб.</b>
+          </div>
         <div class="flex flex-col gap-4 mt-7">
           <div class="flex flex-col">
             <label for="recipientName" class="font-medium mt-2">ФИО получателя</label>

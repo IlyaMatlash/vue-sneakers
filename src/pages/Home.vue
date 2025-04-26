@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue'
 import CardList from '../components/CardList.vue'
-import CardModal from '../components/CardModal.vue';
+import FilterSidebar from '../components/FilterSidebar.vue'
 import axios from 'axios'
 import { inject } from 'vue'
 
@@ -11,7 +11,10 @@ const items = ref([])
 
 const filters = reactive({
   sortBy: 'Name',
-  searchQuery: ''
+  searchQuery: '',
+  priceRange: { min: '', max: '' },
+  brands: [],
+  sizes: []
 })
 
 const onChangeSelect = (event) => {
@@ -135,34 +138,22 @@ watch(cart, (newCart) => {
 watch(filters, fetchItems)
 </script>
 
+vue
 <template>
-  <div class="flex justify-between items-center">
-    <h2 class="text-3xl font-bold font-signate">Все кроссовки</h2>
-
-    <div class="flex gap-4">
-      <select
-        @change="onChangeSelect"
-        class="py-2 px-3 border border-slate-300 rounded-md outline-none"
-        name=""
-        id=""
-      >
-        <option value="Name">По Названию</option>
-        <option value="Price">Цена по убыванию</option>
-        <option value="-Price">Цена по возрастанию</option>
-      </select>
-
-      <div class="relative">
-        <img class="absolute left-4 top-3" src="/search.svg" alt="" />
-        <input
-          @input="onChangeSearchInput"
-          class="border rounded-md py-2 pl-10 pr-4 outline-none border-slate-300 focus:border-gray-400"
-          type="text"
-          placeholder="Поиск..."
-        />
+  <div class="flex gap-8">
+    <!-- Основной контент -->
+    <div class="flex-1">
+      <div class="flex justify-between items-center">
+        <h2 class="text-3xl font-bold font-signate">Все кроссовки</h2>
+      </div>
+      <div class="mt-10">
+        <CardList :items="items" @open-card-modal="openCardModal" @add-to-favorite="addToFavorite" @add-to-cart="onClickAddPlus" />
       </div>
     </div>
-  </div>
-  <div class="mt-10">
-    <CardList :items="items" @open-card-modal="openCardModal" @add-to-favorite="addToFavorite" @add-to-cart="onClickAddPlus" />
+    <!-- Боковой фильтр -->
+    <FilterSidebar
+      v-model:filters="filters"
+      class="sticky top-4"
+    />
   </div>
 </template>

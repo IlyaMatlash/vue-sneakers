@@ -1,12 +1,13 @@
 <script setup>
-import { ref, provide, watch, computed, onMounted } from 'vue'
+import { ref, provide, watch, computed, onMounted} from 'vue'
 import Header from './components/Header.vue'
 import Drawer from './components/Drawer.vue'
+import Footer from './components/Footer.vue'
 
 // Корзина (START)
 const cart = ref([])
 const drawerOpen = ref(false)
-const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.Price, 0))
+const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + (item.Price * (item.quantity || 1)), 0))
 const vatPrice = computed(() => Math.round((totalPrice.value * 20) / 100))
 const cartItemsCount = computed(() => cart.value.length)
 
@@ -22,6 +23,11 @@ const addToCart = (item) => {
     console.error('Invalid item provided to addToCart');
     return;
   }
+  const cartItem = {
+    ...item,
+    quantity: 1,
+    isAdded: true
+  };
   if (!cart.value.some(cartItem => cartItem.ProductId === item.ProductId)) {
     cart.value.push(item);
     item.isAdded = true;
@@ -61,6 +67,7 @@ watch(
       localStorage.removeItem('cartItems');
     } else {
       localStorage.setItem('cartItems', JSON.stringify(newCart));
+      totalPrice.value = newCart.reduce((acc, item) => acc + (item.Price * (item.quantity || 1)), 0);
     }
   },
   { deep: true }
@@ -86,7 +93,6 @@ provide('cart', {
   removeFromCart
 })
 //Корзина (END)
-
 </script>
 
 <template>
@@ -95,13 +101,13 @@ provide('cart', {
     :total-price="totalPrice"
     :vat-price="vatPrice"
   />
-  <div class="bg-white m-auto rounded-xl shadow-xl mt-14">
-    <Header :cart-items-count="cartItemsCount" @open-drawer="openDrawer" />
-
-    <div class="p-10">
+  <div class="bg-white m-auto shadow-xl min-h-screen flex flex-col">
+    <Header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md" :cart-items-count="cartItemsCount" @open-drawer="openDrawer" />
+    <div class="p-10 mt-[140px]">
       <router-view></router-view>
     </div>
   </div>
+  <Footer/>
 </template>
 
 <style scoped></style>
