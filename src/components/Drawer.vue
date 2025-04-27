@@ -62,10 +62,10 @@ const isFormValid = computed(() => {
 
 
 <template>
-  <div class="fixed inset-0 flex items-center justify-center z-50">
+  <div class="fixed inset-0 flex items-center justify-center z-30">
     <div @click="closeDrawer" class="fixed inset-0 bg-black opacity-70">  
     </div>
-    <div class="bg-white w-4/5 w-full max-w-[50rem] max-h-[90vh] rounded-lg shadow-xl z-60 p-8 overflow-y-auto relative">
+    <div class="bg-white w-4/5 w-full max-w-[50rem] max-h-[90vh] rounded-lg shadow-xl z-40 p-8 overflow-y-auto relative">
       <DrawerHead />
 
       <div v-if="!totalPrice || orderId" class="flex flex-col items-center justify-center h-full">

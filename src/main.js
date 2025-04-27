@@ -17,13 +17,14 @@ const routes = [
   { path: '/admin', name: 'Admin', component: Admin },
   { path: '/users', name: 'Users', component: Users },
   { path: '/answers', name: 'Answers', component: AnswersPage },
-  {path: '/about', name: 'About', component: () => import('@/components/AboutUs.vue')}
+  {path: '/about', name: 'About', component: () => import('@/components/AboutUs.vue')},
+  { path: '/delivery', name: 'Delivery', component: () => import('@/pages/DeliveryPage.vue')}
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, from, savePosition) {
+  scrollBehavior() {
     return { top: 0 }
   }
 })

@@ -6,11 +6,6 @@ const contactInfo = ref({
   address: 'г. Москва, ул. Пушкина, д. 10',
   workingHours: 'Пн-Вс: 10:00 - 22:00'
 })
-const socialLinks = ref([
-  { name: 'VKontakte', url: 'https://vk.com/sneakers' },
-  { name: 'Telegram', url: 'https://t.me/sneakers' },
-  { name: 'Instagram', url: 'https://instagram.com/sneakers' }
-])
 </script>
 <template>
   <div class="max-w-4xl mx-auto py-8">

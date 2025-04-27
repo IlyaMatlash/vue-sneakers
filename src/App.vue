@@ -102,7 +102,7 @@ provide('cart', {
     :vat-price="vatPrice"
   />
   <div class="bg-white m-auto shadow-xl min-h-screen flex flex-col">
-    <Header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md" :cart-items-count="cartItemsCount" @open-drawer="openDrawer" />
+    <Header class="fixed top-0 left-0 right-0 z-20 bg-white shadow-md" :cart-items-count="cartItemsCount" @open-drawer="openDrawer" />
     <div class="p-10 mt-[140px]">
       <router-view></router-view>
     </div>

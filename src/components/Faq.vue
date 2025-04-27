@@ -45,7 +45,7 @@ const toggleFaq = (id) => {
 }
 </script>
 <template>
-  <div class="grid md:grid-cols-2 w-full gap-8 items-start justify-between">
+  <div class="w-full mx-auto">
     <div class="space-y-4 w-full">
       <div
         v-for="faq in faqs"
@@ -54,9 +54,9 @@ const toggleFaq = (id) => {
       >
         <button
           @click="toggleFaq(faq.id)"
-          class="flex justify-between items-center w-full p-4 text-left bg-white hover:bg-slate-50 transition-colors"
+          class="flex justify-between w-full p-4 text-left bg-white hover:bg-slate-50 transition-colors"
         >
-          <span class="font-medium">{{ faq.question }}</span>
+          <span class="font-medium text-left w-full">{{ faq.question }}</span>
           <svg
             class="w-5 h-5 transition-transform duration-300"
             :class="{ 'rotate-180': faq.isOpen }"
@@ -81,9 +81,6 @@ const toggleFaq = (id) => {
           </p>
         </div>
       </div>
-    </div>
-    <div class="w-full flex justify-center">
-      <img class="w-full h-auto rounded-lg object-cover" src="/faq_pic.png" alt="FAQ" />
     </div>
   </div>
 </template>
