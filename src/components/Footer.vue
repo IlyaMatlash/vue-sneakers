@@ -14,9 +14,7 @@ vue
           <h3 class="text-gray-500 font-medium mb-4">Покупателям</h3>
           <ul class="space-y-2 text-sky-50">
             <li><router-link to="/delivery" class="hover:text-sky-400 transition duration-300">Доставка</router-link></li>
-            <li>
-              <a href="#" class="hover:text-sky-400 transition duration-300">Уход за обувью</a>
-            </li>
+            <li><router-link to="/shoe-care" class="hover:text-sky-400 transition duration-300">Уход за обувью</router-link></li>
           </ul>
         </div>
         <div>

@@ -48,10 +48,13 @@ const toggleMenu = () => {
           <span>Избранные</span>
         </li>
       </router-link>
-      <li class="flex items-center gap-2 md:gap-3 text-gray-500 hover:text-black cursor-pointer w-full md:w-auto py-2 md:py-0">
-        <img class="w-6 md:w-7" src="/step.svg" alt="Cart" />
-        <span>Уход за обувью</span>
-      </li>
+      <router-link to="/shoe-care" class="w-full md:w-auto">
+        <li class="flex items-center gap-2 md:gap-3 text-gray-500 hover:text-black cursor-pointer w-full md:w-auto py-2 md:py-0">
+          <img class="w-6 md:w-7" src="/step.svg" alt="Cart" />
+          <span>Уход за обувью</span>
+        </li>
+      </router-link>
+      
     </ul>
   </header>
 </template>

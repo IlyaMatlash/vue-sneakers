@@ -18,7 +18,8 @@ const routes = [
   { path: '/users', name: 'Users', component: Users },
   { path: '/answers', name: 'Answers', component: AnswersPage },
   {path: '/about', name: 'About', component: () => import('@/components/AboutUs.vue')},
-  { path: '/delivery', name: 'Delivery', component: () => import('@/pages/DeliveryPage.vue')}
+  { path: '/delivery', name: 'Delivery', component: () => import('@/pages/DeliveryPage.vue')},
+  { path: '/shoe-care', name: 'ShoeCare', component: () => import('@/pages/ShoeCarePage.vue')}
 ]
 
 const router = createRouter({
