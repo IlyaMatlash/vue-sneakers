@@ -25,7 +25,7 @@ namespace myApi.Controllers
         public JsonResult Get()
         {
             string query = @"
-                            select OrderId, UserId, Date, Status from
+                            select OrderId, Date, from
                             dbo.Orders
                             ";
 
@@ -52,7 +52,7 @@ namespace myApi.Controllers
         {
             string query = @"
                            insert into dbo.Orders
-                           values (@UserId, @Date, @Status)
+                           values (@Date)
                             ";
 
             DataTable table = new DataTable();
@@ -63,9 +63,7 @@ namespace myApi.Controllers
                 myCon.Open();
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
-                    myCommand.Parameters.AddWithValue("@UserId", order.UserId);
                     myCommand.Parameters.AddWithValue("@Date", order.Date);
-                    myCommand.Parameters.AddWithValue("@Status", order.Status);
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader);
                     myReader.Close();
@@ -81,7 +79,7 @@ namespace myApi.Controllers
         {
             string query = @"
                            update dbo.Orders
-                           set UserId= @UserId, Date= @Date, Status= @Status
+                           set Date= @Date,
                             where OrderId=@OrderId
                             ";
 
@@ -94,9 +92,7 @@ namespace myApi.Controllers
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
                     myCommand.Parameters.AddWithValue("@OrderId", order.OrderId);
-                    myCommand.Parameters.AddWithValue("@UserId", order.UserId);
                     myCommand.Parameters.AddWithValue("@Date", order.Date);
-                    myCommand.Parameters.AddWithValue("@Status", order.Status);
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader);
                     myReader.Close();

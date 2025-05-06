@@ -1,6 +1,7 @@
 vue
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
+import debounce from 'lodash/debounce'
 const props = defineProps({
   filters: {
     type: Object,
@@ -69,10 +70,21 @@ const selectedSeasons = ref([])
 const selectedColors = ref([])
 const selectedMaterials = ref([])
 const selectedFeatures = ref([])
+const validatePrice = (price) => {
+  const numPrice = Number(price);
+  return !isNaN(numPrice) && numPrice >= 0;
+}
 const updateFilters = () => {
-  emit('update:filters', {
+  // Валидация цены
+  if (!validatePriceRange(priceRange.value)) {
+    return;
+  }
+  
+  // Формируем объект с фильтрами
+  const updatedFilters = {
     ...props.filters,
-    priceRange: priceRange.value,
+    priceMin: priceRange.value.min ? Number(priceRange.value.min) : '',
+    priceMax: priceRange.value.max ? Number(priceRange.value.max) : '',
     brands: selectedBrands.value,
     sizes: selectedSizes.value,
     categories: selectedCategories.value,
@@ -80,8 +92,25 @@ const updateFilters = () => {
     colors: selectedColors.value,
     materials: selectedMaterials.value,
     features: selectedFeatures.value
-  })
+  };
+  emit('update:filters', updatedFilters);
 }
+const validatePriceRange = (range) => {
+  if (range.min && !validatePrice(range.min)) {
+    console.error('Неверное минимальное значение цены');
+    return false;
+  }
+  if (range.max && !validatePrice(range.max)) {
+    console.error('Неверное максимальное значение цены');
+    return false;
+  }
+  if (range.min && range.max && Number(range.max) < Number(range.min)) {
+    console.error('Максимальная цена должна быть больше минимальной');
+    return false;
+  }
+  return true;
+}
+const debouncedUpdate = debounce(updateFilters, 300)
 const clearFilters = () => {
   priceRange.value = { min: '', max: '' }
   selectedBrands.value = []
@@ -93,6 +122,41 @@ const clearFilters = () => {
   selectedFeatures.value = []
   updateFilters()
 }
+// Отслеживаем изменения фильтров
+watch([
+  () => priceRange.value,
+  () => selectedBrands.value,
+  () => selectedSizes.value,
+  () => selectedCategories.value,
+  () => selectedSeasons.value,
+  () => selectedColors.value,
+  () => selectedMaterials.value,
+  () => selectedFeatures.value
+], () => {
+  // Отменяем предыдущий отложенный вызов
+  debouncedUpdate.cancel();
+  
+  // Проверяем изменения в ценовом диапазоне
+  const hasPriceChanges = priceRange.value.min !== '' || priceRange.value.max !== '';
+  
+  // Проверяем изменения в массивах
+  const hasArrayChanges = [
+    selectedBrands.value,
+    selectedSizes.value, 
+    selectedCategories.value,
+    selectedSeasons.value,
+    selectedColors.value,
+    selectedMaterials.value,
+    selectedFeatures.value
+  ].some(arr => arr.length > 0);
+  if (hasPriceChanges || hasArrayChanges) {
+    debouncedUpdate();
+  }
+}, { deep: true, immediate: true })
+
+onUnmounted(() => {
+  debouncedUpdate.cancel();
+})
 </script>
 <template>
     <div class="filter-sidebar w-72 bg-white p-6 rounded-lg shadow-lg">

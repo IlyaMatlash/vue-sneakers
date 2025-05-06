@@ -23,38 +23,85 @@ const addToCart = (item) => {
     console.error('Invalid item provided to addToCart');
     return;
   }
+  
+  // Создаем новый объект для корзины с нужными свойствами
   const cartItem = {
     ...item,
     quantity: 1,
-    isAdded: true
+    isAdded: true,
+    // Сохраняем выбранный размер, если он есть
+    selectedSize: item.selectedSize || null
   };
-  if (!cart.value.some(cartItem => cartItem.ProductId === item.ProductId)) {
-    cart.value.push(item);
-    item.isAdded = true;
-    localStorage.setItem('cartItems', JSON.stringify(cart.value));
-    localStorage.setItem(`cartItem_${item.ProductId}`, 'true');
+  
+  // Проверяем, есть ли уже такой товар в корзине
+  const existingItemIndex = cart.value.findIndex(
+    cartItem => cartItem.ProductId === item.ProductId && 
+    cartItem.selectedSize === item.selectedSize
+  );
+  
+  if (existingItemIndex !== -1) {
+    // Если товар уже есть в корзине, увеличиваем его количество
+    cart.value[existingItemIndex].quantity += 1;
+  } else {
+    // Если товара нет в корзине, добавляем его
+    cart.value.push(cartItem);
   }
+  
+  // Устанавливаем флаг isAdded для оригинального объекта
+  // для корректного отображения в UI
+  item.isAdded = true;
+  
+  // Сохраняем обновленную корзину в localStorage
+  localStorage.setItem('cartItems', JSON.stringify(cart.value));
+  
+  // Сохраняем информацию о товаре с учетом размера
+  const storageKey = item.selectedSize 
+    ? `cartItem_${item.ProductId}_${item.selectedSize}` 
+    : `cartItem_${item.ProductId}`;
+  localStorage.setItem(storageKey, 'true');
+  
+  // Оповещаем другие компоненты о добавлении товара
+  const event = new CustomEvent('cart-item-added', { 
+    detail: { 
+      productId: item.ProductId,
+      selectedSize: item.selectedSize 
+    }
+  });
+  window.dispatchEvent(event);
 }
+
 const removeFromCart = (item) => {
   if (!item || !item.ProductId) {
     console.error('Invalid item provided to removeFromCart');
     return;
   }
   try {
-    cart.value = cart.value.filter(cartItem => cartItem.ProductId !== item.ProductId);
+    // Удаляем товар с учетом размера
+    cart.value = cart.value.filter(cartItem => 
+      !(cartItem.ProductId === item.ProductId && cartItem.selectedSize === item.selectedSize)
+    );
     
-    // Update isAdded state in all relevant components
+    // Оповещаем другие компоненты об удалении товара
     const event = new CustomEvent('cart-item-removed', { 
-      detail: { productId: item.ProductId }
+      detail: { 
+        productId: item.ProductId,
+        selectedSize: item.selectedSize 
+      }
     });
     window.dispatchEvent(event);
     
+    // Обновляем localStorage
     if (cart.value.length === 0) {
       localStorage.removeItem('cartItems');
     } else {
       localStorage.setItem('cartItems', JSON.stringify(cart.value));
     }
-    localStorage.removeItem(`cartItem_${item.ProductId}`);
+    
+    // Удаляем информацию о товаре с учетом размера
+    const storageKey = item.selectedSize 
+      ? `cartItem_${item.ProductId}_${item.selectedSize}` 
+      : `cartItem_${item.ProductId}`;
+    localStorage.removeItem(storageKey);
   } catch (error) {
     console.error('Error removing item from cart:', error);
   }
@@ -78,7 +125,11 @@ onMounted(() => {
   if (savedCart) {
     cart.value = JSON.parse(savedCart)
     cart.value.forEach(item => {
-      if (localStorage.getItem(`cartItem_${item.ProductId}`) === 'true') {
+      // Проверяем наличие товар�� в localStorage с учетом размера
+      const storageKey = item.selectedSize 
+        ? `cartItem_${item.ProductId}_${item.selectedSize}` 
+        : `cartItem_${item.ProductId}`;
+      if (localStorage.getItem(storageKey) === 'true') {
         item.isAdded = true
       }
     })

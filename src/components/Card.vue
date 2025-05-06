@@ -3,7 +3,15 @@ const props = defineProps({
   Productid: Number,
   Name: String,
   Description: String,
-  Image: String,
+  Images: {
+    type: [String, Array],
+    required: true,
+    default: () => ['/sneakers/default-image.jpg'],
+    validator(value) {
+      if (typeof value === 'string') return true;
+      return Array.isArray(value) && value.length > 0;
+    }
+  },
   Price: Number,
   isFavorite: Boolean,
   isAdded: Boolean,
@@ -27,7 +35,7 @@ const visibleFavoriteButton = Boolean(props.onClickAdd)
       class="absolute top-8 left-8 mb-5"
       alt="Like"
     />
-    <img class="w-full" :src="Image" alt="Sneaker" />
+    <img class="w-full" :src="typeof Images === 'string' ? Images : Images[0]" :alt="Name" />
     <p class="mt-2 text-left">{{ Name }}</p>
 
     <div class="flex justify-between mt-5">

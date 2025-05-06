@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import Card from './Card.vue'
 import CardModal from './CardModal.vue';
 
-defineProps({
+const props = defineProps({
   items: Array,
   required: true
 })
@@ -32,7 +32,7 @@ const emit = defineEmits(['addToFavorite', 'addToCart'])
       :id="item.id"
       :Name="item.Name"
       :description="item.description"
-      :Image="item.Image ? item.Image : '/default-image.jpg'"
+      :Images="item.Images"
       :Price="item.Price"
       :on-click-favorite="isFavorites ? null : () => emit('addToFavorite', item)"
       :on-click-add="isFavorites ? null : () => emit('addToCart', item)"
@@ -51,6 +51,3 @@ const emit = defineEmits(['addToFavorite', 'addToCart'])
     />
   </div>
 </template>
-
-<!-- @click-add="onClickAdd" -->
-<!-- :is-added="false" -->

@@ -56,10 +56,12 @@
   </table>
 
   <div
-    class="modal fade fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-50 flex justify-center items-center"
+    class="fixed inset-0 flex justify-center items-center z-30"
     v-if="showModal"
   >
-    <div class="modal-dialog modal-md bg-white rounded-lg shadow-lg">
+  <!-- <div @click="showModal = false" class="fixed inset-0 bg-black opacity-70">  
+  </div> -->
+    <div class="modal-dialog modal-md bg-white w-full max-w-[50rem] max-h-[90vh] rounded-lg shadow-lg">
       <div class="modal-content p-12">
         <div class="flex justify-between modal-header mb-6">
           <h5 class="modal-title text-lg font-bold text-gray-900">
@@ -134,30 +136,71 @@
 import { defineProps, ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
+const props = defineProps({
+  rowsProduct: {
+    type: Array,
+    required: true
+  },
+  headerItemsProduct: {
+    type: Array,
+    required: true
+  },
+  apiEndpoint: {
+    type: String,
+    required: true
+  }
+})
 const showModal = ref(false)
 const editedRow = ref(null)
 const newRow = ref(null)
+const errors = ref({})
+const isLoading = ref(false)
 
+// Валидация формы
+const validateForm = (data) => {
+  const errors = {}
+  
+  if (!data.Name?.trim()) {
+    errors.Name = 'Название обязательно'
+  }
+  
+  if (!data.Price || data.Price <= 0) {
+    errors.Price = 'Цена должна быть больше 0'
+  }
+  
+  if (!data.Description?.trim()) {
+    errors.Description = 'Описание обязательно'
+  }
+  
+  return errors
+}
+
+// Валидация изображений
+const validateImage = (file) => {
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  const allowedTypes = ['image/jpeg', 'image/png']
+  
+  if (!allowedTypes.includes(file.type)) {
+    return 'Разрешены только JPEG и PNG'
+  }
+  
+  if (file.size > maxSize) {
+    return 'Размер файла не должен превышать 5MB'
+  }
+  
+  return null
+}
 const formData = computed(() => {
   return editedRow.value ? editedRow.value : newRow.value;
 });
 
-const props = defineProps({
-  rowsProduct: Array,
-  headerItemsProduct: Array,
-  required: true,
-  apiEndpoint: String,
-  createRow: Function,
-  updateRow: Function,
-  deleteRow: Function
-})
 
 const rowsProduct = ref(props.rowsProduct)
 const headerItemsProduct = ref(props.headerItemsProduct)
 
 onMounted(async () => {
   try {
-    const response = await axios.get(`http://localhost:5072/api/product`)
+    const response = await axios.get(`${props.apiEndpoint}`)
     headerItemsProduct.push(...response.data)
   } catch (error) {
     console.error(error)
@@ -168,89 +211,69 @@ const emit = defineEmits(['createRow', 'updateRow', 'deleteRow'])
 
 const createRow = async () => {
   try {
+    isLoading.value = true
+    
+    // Валидация формы
+    const formErrors = validateForm(newRow.value)
+    if (Object.keys(formErrors).length > 0) {
+      errors.value = formErrors
+      return
+    }
+
     const formData = new FormData();
     formData.append("Name", newRow.value.Name);
     formData.append("Description", newRow.value.Description);
     formData.append("Price", newRow.value.Price);
-    const imageInput = document.querySelector('#Image');
-    if (imageInput.files.length > 0) {
-      const file = imageInput.files[0];
-      const imageName = file.name;
-      const imagePath = `/sneakers/${imageName}`;
-      formData.append("Image", imagePath);
+    formData.append("Brand", newRow.value.Brand);
+    
+    // Обработка множественных размеров
+    if (Array.isArray(newRow.value.Sizes)) {
+      formData.append("Sizes", newRow.value.Sizes.join(','));
     } else {
-      formData.append("Image", newRow.value.Image);
+      formData.append("Sizes", newRow.value.Sizes || '');
     }
-    const response = await axios.post(`http://localhost:5072/api/product`, formData, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-    });
+    
+    // Обработка множественных изображений
+    const imageInput = document.querySelector('#Images');
+    if (imageInput.files.length > 0) {
+      const images = [];
+      for (let i = 0; i < imageInput.files.length; i++) {
+        const file = imageInput.files[i];
+        const imageName = file.name;
+        const imagePath = `http://localhost:5173/sneakers/${imageName}`;
+        images.push(imagePath);
+        const imageError = validateImage(file)
+        
+        if (imageError) {
+          errors.value.image = imageError
+          return
+        }
+        
+        // Загрузка каждого изображения
+        const imageFormData = new FormData();
+        imageFormData.append("file", file);
+        await axios.post(`${props.apiEndpoint}/SaveFile`, imageFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
+      formData.append("Images", images.join(','));
+    }
+    formData.append("Category", newRow.value.Category);
+    formData.append("Season", newRow.value.Season);
+    formData.append("Color", newRow.value.Color);
+    formData.append("Material", newRow.value.Material);
+    formData.append("Features", newRow.value.Features);
+    
+    const response = await axios.post(props.apiEndpoint, formData);
     showModal.value = false;
     editedRow.value = null;
-    if (imageInput.files.length > 0) {
-      const file = imageInput.files[0];
-      const formDataImage = new FormData();
-      formDataImage.append("file", file);
-      await axios.post(`http://localhost:5072/api/product/SaveFile`, formDataImage, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-      });
-    };
-    newRow.value = {
-      Name: '',
-      Description: '',
-      Price: '',
-      Image: null
-    };
   } catch (error) {
-    console.error(error);
-  }
-};
-
-const updateRow = async () => {
-  try {
-    const formData = new FormData();
-    formData.append("ProductId", editedRow.value.ProductId);
-    formData.append("Name", editedRow.value.Name);
-    formData.append("Description", editedRow.value.Description);
-    formData.append("Price", editedRow.value.Price);
-    const imageInput = document.querySelector('#Image');
-    if (imageInput.files.length > 0) {
-      const file = imageInput.files[0];
-      const imageName = file.name;
-      const imagePath = `/sneakers/${imageName}`;
-      formData.append("Image", imagePath);
-    } else {
-      formData.append("Image", editedRow.value.Image);
-    }
-    const response = await axios.put(`http://localhost:5072/api/product/`, formData, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-    });
-    if (response.data instanceof Object && response.data.id) {
-        const index = rowsProduct.value.findIndex((r) => r.id === editedRow.value.id);
-        rowsProduct.value.splice(index, 1, response.data);
-
-    } else {
-      console.log('Продукт успешно обновлен!');
-    }
-    showModal.value = false;
-    editedRow.value = null;
-    if (imageInput.files.length > 0) {
-      const file = imageInput.files[0];
-      const formDataImage = new FormData();
-      formDataImage.append("file", file);
-      await axios.post(`http://localhost:5072/api/product/SaveFile`, formDataImage, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-      });
-    }
-  } catch (error) {
-    console.error(error);
+    console.error('Error creating product:', error)
+    errors.value.submit = 'Ошибка при создании товара'
+  } finally {
+    isLoading.value = false
   }
 };
 
@@ -259,7 +282,13 @@ const openAddModal = () => {
     Name: '',
     Description: '',
     Price: '',
-    Image: null
+    Images: null,
+    Brands: '',
+    Sizes: '',
+    Seasons: '',
+    Colors: '',
+    Materials: '',
+    Features: ''
   };
   editedRow.value = null;
   showModal.value = true;
@@ -278,12 +307,15 @@ const deleteRowAlert = (row) => {
 };
 
 const deleteRow = async (row) => {
+  if (!confirm(`Вы уверены что хотите удалить ${row.Name}?`)) {
+    return
+  }
   try {
-    await axios.delete(`http://localhost:5072/api/product/${row.ProductId}`)
-    const index = props.rowsProduct.findIndex((r) => r.id === row.ProductId)
-    props.rowsProduct.splice(index, 1)
+    await axios.delete(`${props.apiEndpoint}/${row.id}`)
+    emit('deleteRow', row.id)
   } catch (error) {
+    alert('Ошибка при удалении записи')
     console.error(error)
   }
-};
+}
 </script>

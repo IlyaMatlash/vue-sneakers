@@ -6,7 +6,7 @@ import App from './App.vue'
 import Home from './pages/Home.vue'
 import Favorites from './pages/Favorites.vue'
 import Admin from './pages/Admin.vue'
-import Users from './pages/Users.vue'
+//import Users from './pages/Users.vue'
 import AnswersPage from './pages/AnswersPage.vue'
 
 const app = createApp(App)
@@ -15,7 +15,7 @@ const routes = [
   { path: '/', name: 'Home', component: Home },
   { path: '/favorites', name: 'Favorites', component: Favorites },
   { path: '/admin', name: 'Admin', component: Admin },
-  { path: '/users', name: 'Users', component: Users },
+ // { path: '/users', name: 'Users', component: Users },
   { path: '/answers', name: 'Answers', component: AnswersPage },
   {path: '/about', name: 'About', component: () => import('@/components/AboutUs.vue')},
   { path: '/delivery', name: 'Delivery', component: () => import('@/pages/DeliveryPage.vue')},

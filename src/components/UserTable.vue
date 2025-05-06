@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="flex flex-row justify-between align-center items-center">
     <h2 class="text-2xl font-medium">Пользователи</h2>
     <button
@@ -267,4 +267,4 @@ const deleteRow = async (row) => {
     console.error(error)
   }
 }
-</script>
+</script> -->

@@ -117,11 +117,11 @@ const isFormValid = computed(() => {
           </div>
           <div class="flex items-center">
             <input type="radio" id="deliveryCDEK" v-model="deliveryMethod" class="mr-3" />
-            <label for="deliveryCDEK" class="font-medium mt-2">CDEK</label>
+            <label for="deliveryCDEK" class="font-medium">CDEK</label>
           </div>
           <div class="flex items-center">
             <input type="radio" id="deliveryRussianPost" v-model="deliveryMethod" class="mr-3" />
-            <label for="deliveryRussianPost" class="font-medium mt-2">Почта России</label>
+            <label for="deliveryRussianPost" class="font-medium">Почта России</label>
           </div>
 
           <div class="flex gap-2 mt-4">

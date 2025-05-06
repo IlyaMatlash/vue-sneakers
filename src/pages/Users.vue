@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <AdminHeader />
     <main>
       <UserTable
@@ -33,4 +33,4 @@
     }
   })
   </script>
-  
+   -->

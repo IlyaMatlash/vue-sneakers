@@ -10,9 +10,7 @@ namespace myApi.Models
         [Key]
         public int OrderId { get; set; }
         [Required]
-        public int UserId { get; set; }
-        [Required]
         public DateTime Date { get; set; }
-        public string? Status { get; set; }
+        public virtual ICollection<OrderItem> OrderItems { get; set; }
     }
 }

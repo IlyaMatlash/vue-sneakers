@@ -17,6 +17,10 @@
       "applicationUrl": "http://localhost:5072",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "watchOptions": {
+        "enable": true,
+        "pollInterval": 1000
       }
     },
     "IIS Express": {
