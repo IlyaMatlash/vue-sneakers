@@ -14,6 +14,7 @@ const { cart, removeFromCart } = inject('cart')
       :Price="item.Price"
       :Images="item.Images"
       :quantity="item.quantity"
+      :Sizes="item.Sizes"
       v-model:quantity="item.quantity"
       @on-click-remove="() => removeFromCart(item)"
     />

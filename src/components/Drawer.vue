@@ -56,7 +56,9 @@ const ButtonDisabled = computed(() => isCreating.value || cartIsEmpty.value || !
 
 // Validation logic
 const isFormValid = computed(() => {
-  return recipientName.value && recipientAddress.value && postalCode.value && phoneNumber.value && email.value && deliveryMethod.value;
+  return recipientName.value && recipientAddress.value && 
+  postalCode.value && phoneNumber.value && 
+  email.value && deliveryMethod.value;
 })
 </script>
 

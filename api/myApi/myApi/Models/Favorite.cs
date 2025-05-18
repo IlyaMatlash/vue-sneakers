@@ -10,7 +10,7 @@ namespace myApi.Models
         [Key]
         public int FavoriteId { get; set; }
         [Required]
-        public int UserId { get; set; }
+        public string? SessionId { get; set; }
         [Required]
         public int ProductId { get; set; }
     }

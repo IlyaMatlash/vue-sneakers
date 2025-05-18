@@ -6,11 +6,14 @@ import CardList from '../components/CardList.vue'
 import InfoBlock from '@/components/InfoBlock.vue';
 import CardModal from '@/components/CardModal.vue';
 
-const favorites = ref([])
+const { cart, addToCart, removeFromCart } = inject('cart')
+const { favorites, toggleFavorite, fetchFavorites } = inject('favorites')
+
+const favoriteProducts = ref([])
 const modalIsOpen = ref(false)
 const selectedItem = ref(null)
+const isLoading = ref(false)
 
-const { cart, addToCart, removeFromCart } = inject('cart')
 const onClickAddToCart = (item) => {
   if (!item.isAdded) {
     addToCart(item);
@@ -22,61 +25,68 @@ const onClickAddToCart = (item) => {
 }
 
 const favoriteItems = computed(() => {
-  return favorites.value.map(favorite => ({
-    ...favorite,
+  return favoriteProducts.value.map(product => ({
+    ...product,
     isFavorite: true,
-    isAdded: cart.value.some(item => item.ProductId === favorite.ProductId)
+    isAdded: cart.value.some(item => item.ProductId === product.ProductId)
   }))
 })
 
-const fetchFavorites = async () => {
+const loadFavoriteProducts = async () => {
   try {
-    const [favoritesResponse, productsResponse] = await Promise.all([
-      axios.get('http://localhost:5072/api/favorite'),
-      axios.get('http://localhost:5072/api/product')
-    ]);
+    isLoading.value = true
     
-    const favoriteIds = new Set(favoritesResponse.data.map(fav => fav.ProductId));
-    const allProducts = productsResponse.data;
+    // Получаем все товары
+    const { data: products } = await axios.get('http://localhost:5072/api/product')
     
-    favorites.value = allProducts.filter(product => favoriteIds.has(product.ProductId))
-      .map(product => ({
-        ...product,
-        FavoriteId: favoritesResponse.data.find(fav => fav.ProductId === product.ProductId).FavoriteId
-      }));
-  } catch (error) {
-    console.log(error)
-  }
-}
-
-const toggleFavorite = async (item) => {
-  try {
-    const isFavorite = favorites.value.some(fav => fav.ProductId === item.ProductId);
-    if (isFavorite) {
-      // Remove from favorites
-      const favoriteItem = favorites.value.find(fav => fav.ProductId === item.ProductId);
-      await axios.delete(`http://localhost:5072/api/favorite/${favoriteItem.FavoriteId}`)
-      favorites.value = favorites.value.filter(fav => fav.ProductId !== item.ProductId)
-      item.isFavorite = false
-      item.FavoriteId = null
-      localStorage.removeItem(`favorite_${item.ProductId}`)
-    } else {
-      // Add to favorites
-      const response = await axios.post('http://localhost:5072/api/favorite', {
-        UserId: 1, // Здесь должен быть актуальный ID пользователя
-        ProductId: item.ProductId
-      });
-      
-      if (response.data.FavoriteId) {
-        favorites.value.push({ ...item, FavoriteId: response.data.FavoriteId })
-      }
+    if (!favorites.value || favorites.value.length === 0) {
+      favoriteProducts.value = [];
+      return;
     }
+    // Фильтруем только избранные товары
+    favoriteProducts.value = products.filter(product => 
+      favorites.value.some(fav => fav.ProductId === product.ProductId)
+    ).map(product => {
+      const favorite = favorites.value.find(fav => fav.ProductId === product.ProductId)
+      return {
+        ...product,
+        FavoriteId: favorite ? favorite.FavoriteId : null
+      }
+    })
   } catch (error) {
-    console.error('Ошибка:', error.response?.data?.error || error.message);
+    console.error('Error loading favorite products:', error);
+    favoriteProducts.value = [];
+  } finally {
+    isLoading.value = false
   }
 }
 
-onMounted(fetchFavorites)
+const handleToggleFavorite = async (item) => {
+  await toggleFavorite(item)
+  // После удаления из избранного обновляем список
+  await loadFavoriteProducts()
+}
+
+const openCardModal = (item) => {
+  selectedItem.value = item
+  modalIsOpen.value = true
+}
+
+const closeCardModal = () => {
+  modalIsOpen.value = false
+  selectedItem.value = null
+}
+
+onMounted(async () => {
+  // Загружаем избранные товары
+  await fetchFavorites()
+  await loadFavoriteProducts()
+  
+  // Слушаем события изменения избранных товаров
+  window.addEventListener('favorite-removed', async () => {
+    await loadFavoriteProducts()
+  })
+})
 </script>
 
 <template>
@@ -84,7 +94,7 @@ onMounted(fetchFavorites)
 
   <div>
     <InfoBlock
-      v-if="favoriteItems.length === 0"
+      v-if="favoriteItems.length === 0 && !isLoading"
       Title="Избранных нет :("
       Description="Вы ничего не добавляли в избранные"
       Image="/emoji-1.png"
@@ -92,15 +102,17 @@ onMounted(fetchFavorites)
     <div v-else>
       <CardList 
         :items="favoriteItems"
-        @add-to-favorite="toggleFavorite"
+        @add-to-favorite="handleToggleFavorite"
         @add-to-cart="onClickAddToCart"
         @click="openCardModal"
       />
     </div>
     <CardModal
-      v-if="modalIsOpen"
+    v-if="modalIsOpen"
       :item="selectedItem"
       @close="closeCardModal"
+      @add-to-favorite="handleToggleFavorite"
+      @add-to-cart="onClickAddToCart"
     />
   </div>
 </template>

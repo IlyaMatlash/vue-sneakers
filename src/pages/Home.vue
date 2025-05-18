@@ -6,6 +6,7 @@ import axios from 'axios'
 import { inject } from 'vue'
 
 const { cart, addToCart, removeFromCart } = inject('cart')
+const { toggleFavorite, isFavorite, getFavoriteId } = inject('favorites')
 
 const items = ref([])
 const isLoading = ref(false)
@@ -33,46 +34,32 @@ const onChangeSearchInput = (event) => {
 
 const addToFavorite = async (item) => {
   try {
-    if (!item.isFavorite) {
-      const response = await axios.post('http://localhost:5072/api/favorite', {
-        UserId: 1,
-        ProductId: item.ProductId
-      })
-
-      if (response.data.id) {
-        item.isFavorite = true
-        item.FavoriteId = response.data.id
-        localStorage.setItem(`favorite_${item.ProductId}`, 'true')
-      }
-    } else {
-      await axios.delete(`http://localhost:5072/api/favorite/${item.FavoriteId}`)
-      item.isFavorite = false
-      item.FavoriteId = null
-      localStorage.removeItem(`favorite_${item.ProductId}`)
-    }
+    const newFavoriteStatus = await toggleFavorite(item)
+    item.isFavorite = newFavoriteStatus
+    item.FavoriteId = newFavoriteStatus ? getFavoriteId(item.ProductId) : null
   } catch (err) {
     console.error('Error toggling favorite:', err)
   }
 }
 
-const fetchFavorites = async () => {
-  try {
-    const { data } = await axios.get('http://localhost:5072/api/favorite')
+// const fetchFavorites = async () => {
+//   try {
+//     const { data } = await axios.get('http://localhost:5072/api/favorite')
 
-    items.value = items.value.map((item) => {
-      const favorite = data.find((f) => f.ProductId === item.ProductId)
-      const isFavorite = favorite || localStorage.getItem(`favorite_${item.ProductId}`) === 'true'
+//     items.value = items.value.map((item) => {
+//       const favorite = data.find((f) => f.ProductId === item.ProductId)
+//       const isFavorite = favorite || localStorage.getItem(`favorite_${item.ProductId}`) === 'true'
 
-      return {
-        ...item,
-        isFavorite: isFavorite,
-        FavoriteId: favorite ? favorite.FavoriteId : null
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching favorites:', error)
-  }
-}
+//       return {
+//         ...item,
+//         isFavorite: isFavorite,
+//         FavoriteId: favorite ? favorite.FavoriteId : null
+//       }
+//     })
+//   } catch (error) {
+//     console.error('Error fetching favorites:', error)
+//   }
+// }
 
 const fetchItems = async () => {
   try {
@@ -88,12 +75,16 @@ const fetchItems = async () => {
     if (filters.colors.length) params.append('colors', filters.colors.join(','))
     if (filters.materials.length) params.append('materials', filters.materials.join(','))
     if (filters.features.length) params.append('features', filters.features.join(','))
-    // Добавляем параметры сортировки и поиска
     if (filters.sortBy) params.append('sortBy', filters.sortBy)
     if (filters.searchQuery) params.append('searchQuery', filters.searchQuery)
 
     const { data } = await axios.get(`http://localhost:5072/api/product?${params.toString()}`)
-    items.value = data
+    items.value = data.map(item => ({
+      ...item,
+      isFavorite: isFavorite(item.ProductId),
+      FavoriteId: getFavoriteId(item.ProductId),
+      isAdded: cart.value.some((cartItem) => cartItem.ProductId === item.ProductId)
+    }))
   } catch (error) {
     console.error('Error fetching items:', error)
   } finally {
@@ -117,10 +108,7 @@ const onClickAddPlus = (item) => {
 
 // Обработчик обновления фильтров
 const handleFiltersUpdate = (updatedFilters) => {
-  // Обновляем локальное состояние фильтров
   Object.assign(filters, updatedFilters)
-  
-  // Вызываем функцию для получения отфильтрованных данных
   fetchItems()
 }
 
@@ -129,19 +117,32 @@ onMounted(async () => {
   cart.value = localCart ? JSON.parse(localCart) : []
 
   await fetchItems()
-  await fetchFavorites()
+  // Слушаем события изменения избранных товаров
+  window.addEventListener('favorite-added', (event) => {
+    const { productId, favoriteId } = event.detail
+    const item = items.value.find(i => i.ProductId === productId)
+    if (item) {
+      item.isFavorite = true
+      item.FavoriteId = favoriteId
+    }
+  })
 
-  // items.value = items.value.map((item) => ({
-  //   ...item,
-  //   isAdded: cart.value.some((cartItem) => cartItem.ProductId === item.ProductId)
-  // }))
-  // window.addEventListener('cart-item-removed', (event) => {
-  //   const productId = event.detail.productId
-  //   const item = items.value.find((i) => i.ProductId === productId)
-  //   if (item) {
-  //     item.isAdded = false
-  //   }
-  // })
+  window.addEventListener('favorite-removed', (event) => {
+    const { productId } = event.detail
+    const item = items.value.find(i => i.ProductId === productId)
+    if (item) {
+      item.isFavorite = false
+      item.FavoriteId = null
+    }
+  })
+
+  window.addEventListener('cart-item-removed', (event) => {
+    const productId = event.detail.productId
+    const item = items.value.find((i) => i.ProductId === productId)
+    if (item) {
+      item.isAdded = false
+    }
+  })
 })
 
 watch(cart, (newCart) => {
@@ -160,7 +161,6 @@ watch(
 )
 </script>
 
-vue
 <template>
   <div class="flex gap-8">
     <!-- Основной контент -->

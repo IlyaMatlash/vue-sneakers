@@ -4,9 +4,7 @@ import { defineProps, defineEmits, ref, onMounted, onBeforeUnmount } from 'vue';
 const props = defineProps({
   item: Object,
   isFavorite: Boolean,
-  isAdded: Boolean,
-  onClickAdd: Function,
-  onClickFavorite: Function
+  isAdded: Boolean
 });
 
 const emit = defineEmits(['close', 'add-to-favorite', 'add-to-cart']);
@@ -18,7 +16,6 @@ const isItemInCart = ref(props.isAdded);
 
 const selectSize = (size) => {
   selectedSize.value = size;
-  
   // Проверяем, есть ли товар с этим размером в корзине
   checkIfItemInCart();
 };
@@ -47,6 +44,11 @@ const addToCart = () => {
     // Можно добавить уведомление о необходимости выбрать размер
     alert('Пожалуйста, выберите размер');
   }
+};
+
+// Функция для добавления в избранное
+const toggleFavorite = () => {
+  emit('add-to-favorite', props.item);
 };
 
 // Обработчики событий для синхронизации состояния
@@ -128,7 +130,7 @@ const mainImage = Array.isArray(props.item?.Images)
                 :class="[
                   'border rounded-lg py-3 text-center transition-colors',
                   selectedSize === size 
-                    ? 'border-black bg-black text-white' 
+                    ? 'border-sky-500 bg-sky-500 text-white' 
                     : 'border-gray-300 hover:border-gray-400'
                 ]"
               >
@@ -140,19 +142,22 @@ const mainImage = Array.isArray(props.item?.Images)
           <!-- Кнопки действий -->
           <div class="flex flex-col gap-3 mt-auto">
             <button 
-              @click="addToCart" 
-              class="w-full bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600 transition"
+              @click="addToCart"
+              :disabled="!selectedSize" 
+              class="w-full bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {{ isItemInCart ? 'Убрать из корзины' : 'Добавить в корзину' }}
+              {{ isItemInCart ? 'В корзине' : 'Добавить в корзину' }}
             </button>
             
             <div class="flex gap-3">
               <button 
-                @click="$emit('add-to-favorite', item)"
-                class="flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-3 px-6 hover:border-gray-400 transition-colors flex-1"
+                @click="toggleFavorite"
+                class="flex items-center justify-center gap-2 border 
+                border-gray-300 rounded-lg py-3 px-6 
+                hover:border-gray-400 transition-colors flex-1"
               >
                 <img
-                  :src="!isFavorite ? '/like-1.svg' : '/like-2.svg'"
+                  :src="!item.isFavorite ? '/like-1.svg' : '/like-2.svg'"
                   class="w-5 h-5"
                   alt="Like"
                 />

@@ -1,4 +1,3 @@
-vue
 <script setup>
 import { ref, watch, onUnmounted } from 'vue'
 import debounce from 'lodash/debounce'

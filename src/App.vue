@@ -125,7 +125,7 @@ onMounted(() => {
   if (savedCart) {
     cart.value = JSON.parse(savedCart)
     cart.value.forEach(item => {
-      // Проверяем наличие товар�� в localStorage с учетом размера
+      // Проверяем наличие товара в localStorage с учетом размера
       const storageKey = item.selectedSize 
         ? `cartItem_${item.ProductId}_${item.selectedSize}` 
         : `cartItem_${item.ProductId}`;
