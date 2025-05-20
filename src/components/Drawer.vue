@@ -22,44 +22,109 @@ const email = ref('')
 const promoCode = ref('')
 const deliveryMethod = ref('')
 const formSubmited = ref(false)
+const errorMessage = ref('')
 
 const createOrder = async () => {
-  //formSubmitted.value = true;
+  formSubmited.value = true;
   if (!isFormValid.value || cartIsEmpty.value) return;
 
   try {
-    isCreating.value = true
-    const { data } = await axios.post(`https://6e08a32863a3f798.mokky.dev/orders`, {
-      items: cart.value,
-      totalPrice: props.totalPrice.value,
+    isCreating.value = true;
+    errorMessage.value = '';
+
+    // Формируем данные заказа в соответствии с моделью OrderDto
+    const orderData = {
+      orderItems: cart.value.map(item => ({
+        productId: item.id || item.ProductId,
+        quantity: item.quantity,
+        price: item.Price || item.price,
+        name: item.Name || item.name
+      })),
+      totalPrice: props.totalPrice,
       recipientName: recipientName.value,
       recipientAddress: recipientAddress.value,
       postalCode: postalCode.value,
       phoneNumber: phoneNumber.value,
       email: email.value,
-      promoCode: promoCode.value,
-      deliveryMethod: deliveryMethod.value
-    })
+      promoCode: promoCode.value || null,
+      deliveryMethod: deliveryMethod.value,
+      orderDate: new Date().toISOString(),
+      status: "New"
+    };
 
-    cart.value = []
+    const response = await axios.post('http://localhost:5072/api/orders', orderData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
-    orderId.value = data.id;
+    if (response.status === 201 || response.status === 200) {
+      cart.value = [];
+      // Установка ID заказа для отображения сообщения об успехе
+      orderId.value = response.data.id;
+      resetForm();
+      localStorage.setItem('lastOrderId', orderId.value);
+      setTimeout(() => {
+        closeDrawer();
+      }, 3000);
+    } else {
+      throw new Error('Неожиданный ответ от сервера');
+    }
   } catch (error) {
-    console.log(error)
+    console.error('Ошибка при создании заказа:', error);
+    
+    if (error.response) {
+      // Сервер вернул ошибку со статусом
+      if (error.response.status === 400) {
+        // Ошибка валидации
+        if (error.response.data.errors) {
+          // Если сервер вернул объект с ошибками валидации
+          const validationErrors = Object.values(error.response.data.errors).flat();
+          errorMessage.value = validationErrors.join(', ');
+        } else {
+          errorMessage.value = error.response.data.title || error.response.data.message || 'Ошибка валидации данных';
+        }
+      } else if (error.response.status === 500) {
+        // Внутренняя ошибка сервера
+        errorMessage.value = 'Произошла внутренняя ошибка сервера. Пожалуйста, попробуйте позже.';
+      } else if (error.response.status === 404) {
+        // API не найден
+        errorMessage.value = 'Сервис оформления заказов временно недоступен. Пожалуйста, попробуйте позже.';
+      } else {
+        errorMessage.value = error.response.data.message || 'Произошла ошибка при оформлении заказа';
+      }
+    } else if (error.request) {
+      // Запрос был сделан, но ответ не получе��
+      errorMessage.value = 'Сервер не отвечает. Пожалуйста, проверьте подключение к интернету.';
+    } else {
+      // Ошибка при настройке запроса
+      errorMessage.value = 'Произошла ошибка при оформлении заказа. Пожалуйста, попробуйте снова.';
+    }
   } finally {
-    isCreating.value = false
+    isCreating.value = false;
   }
-}
+};
 
-const cartIsEmpty = computed(() => cart.value.length === 0)
-const ButtonDisabled = computed(() => isCreating.value || cartIsEmpty.value || !isFormValid.value)
+const resetForm = () => {
+  recipientName.value = '';
+  recipientAddress.value = '';
+  postalCode.value = '';
+  phoneNumber.value = '';
+  email.value = '';
+  promoCode.value = '';
+  deliveryMethod.value = '';
+  formSubmited.value = false;
+};
+
+const cartIsEmpty = computed(() => cart.value.length === 0);
+const ButtonDisabled = computed(() => isCreating.value || cartIsEmpty.value || !isFormValid.value);
 
 // Validation logic
 const isFormValid = computed(() => {
   return recipientName.value && recipientAddress.value && 
   postalCode.value && phoneNumber.value && 
   email.value && deliveryMethod.value;
-})
+});
 </script>
 
 
@@ -67,7 +132,7 @@ const isFormValid = computed(() => {
   <div class="fixed inset-0 flex items-center justify-center z-30">
     <div @click="closeDrawer" class="fixed inset-0 bg-black opacity-70">  
     </div>
-    <div class="bg-white w-4/5 w-full max-w-[50rem] max-h-[90vh] rounded-lg shadow-xl z-40 p-8 overflow-y-auto relative">
+    <div class="bg-white w-4/5 max-w-[50rem] max-h-[90vh] rounded-lg shadow-xl z-40 p-8 overflow-y-auto relative">
       <DrawerHead />
 
       <div v-if="!totalPrice || orderId" class="flex flex-col items-center justify-center h-full">
@@ -92,11 +157,17 @@ const isFormValid = computed(() => {
             <div class="flex-1 border-b border-dashed"></div>
             <b>{{ totalPrice }} руб.</b>
           </div>
+        
+        <div v-if="errorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
+          {{ errorMessage }}
+        </div>
+        
         <div class="flex flex-col gap-4 mt-7">
           <div class="flex flex-col">
             <label for="recipientName" class="font-medium mt-2">ФИО получателя</label>
             <input id="recipientName" v-model="recipientName" placeholder="ФИО" class="border rounded p-3" />
           </div>
+          <!-- ... existing code ... -->
           <div class="flex flex-col">
             <label for="recipientAddress" class="font-medium mt-2">Адрес получателя</label>
             <input id="recipientAddress" v-model="recipientAddress" placeholder="Страна, Город, Улица, Дом, Квартира" class="border rounded p-3" />
@@ -118,11 +189,11 @@ const isFormValid = computed(() => {
             <input id="promoCode" v-model="promoCode" placeholder="Введите промокод" class="border rounded p-3" />
           </div>
           <div class="flex items-center">
-            <input type="radio" id="deliveryCDEK" v-model="deliveryMethod" class="mr-3" />
+            <input type="radio" id="deliveryCDEK" value="CDEK" v-model="deliveryMethod" class="mr-3" />
             <label for="deliveryCDEK" class="font-medium">CDEK</label>
           </div>
           <div class="flex items-center">
-            <input type="radio" id="deliveryRussianPost" v-model="deliveryMethod" class="mr-3" />
+            <input type="radio" id="deliveryRussianPost" value="RussianPost" v-model="deliveryMethod" class="mr-3" />
             <label for="deliveryRussianPost" class="font-medium">Почта России</label>
           </div>
 
@@ -136,7 +207,7 @@ const isFormValid = computed(() => {
             @click="createOrder"
             class="mt-4 transition bg-sky-500 w-full rounded-xl py-3 text-white disabled:bg-slate-400 hover:bg-sky-600 active:bg-sky-700 cursor-pointer"
           >
-            Оформить заказ
+            {{ isCreating ? 'Оформление...' : 'Оформить заказ' }}
           </button>
         </div>
       </div>

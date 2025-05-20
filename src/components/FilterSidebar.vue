@@ -298,11 +298,11 @@ onUnmounted(() => {
           </label>
         </div>
       </div>
-      <button 
+      <!-- <button 
         @click="updateFilters"
         class="w-full bg-sky-500 text-white py-2 rounded hover:bg-sky-600 transition"
       >
         Показать
-      </button>
+      </button> -->
     </div>
   </template>

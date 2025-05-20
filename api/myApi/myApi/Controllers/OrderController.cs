@@ -1,134 +1,109 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Data;
-using System.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using myApi.Data;
 using myApi.Models;
 
-namespace myApi.Controllers
+namespace YourNamespace.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController : ControllerBase
+    public class OrdersController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
-        public OrderController(IConfiguration configuration)
+        private readonly ApplicationDbContext _context;
+
+        public OrdersController(ApplicationDbContext context)
         {
-            _configuration = configuration;
+            _context = context;
         }
 
-        [HttpGet]
-        public JsonResult Get()
-        {
-            string query = @"
-                            select OrderId, Date, from
-                            dbo.Orders
-                            ";
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
-
-            return new JsonResult(table);
-        }
-
+        // POST: api/Orders
         [HttpPost]
-        public JsonResult Post(Order order)
+        public async Task<ActionResult<object>> CreateOrder(OrderDto orderDto)
         {
-            string query = @"
-                           insert into dbo.Orders
-                           values (@Date)
-                            ";
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            if (!ModelState.IsValid)
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@Date", order.Date);
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
+                return BadRequest(ModelState);
             }
 
-            return new JsonResult("Заказ добавлен");
+            // Проверка наличия элементов заказа
+            if (orderDto.OrderItems == null || !orderDto.OrderItems.Any())
+            {
+                return BadRequest(new { message = "Заказ должен содержать хотя бы один товар" });
+            }
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Создание заказа
+                    var order = new Order
+                    {
+                        TotalPrice = orderDto.TotalPrice,
+                        RecipientName = orderDto.RecipientName,
+                        RecipientAddress = orderDto.RecipientAddress,
+                        PostalCode = orderDto.PostalCode,
+                        PhoneNumber = orderDto.PhoneNumber,
+                        Email = orderDto.Email,
+                        PromoCode = orderDto.PromoCode,
+                        DeliveryMethod = orderDto.DeliveryMethod,
+                        OrderDate = orderDto.OrderDate != default ? orderDto.OrderDate : DateTime.UtcNow,
+                        Status = "New"
+                    };
+
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+
+                    // Создание элементов заказа
+                    foreach (var itemDto in orderDto.OrderItems)
+                    {
+                        var orderItem = new OrderItem
+                        {
+                            OrderId = order.OrderId,
+                            ProductId = itemDto.ProductId,
+                            Quantity = itemDto.Quantity,
+                            Price = itemDto.Price,
+                            Name = itemDto.Name
+                        };
+
+                        _context.OrderItems.Add(orderItem);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Возвращаем информацию о созданном заказе
+                    return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, new
+                    {
+                        id = order.OrderId,
+                        message = "Заказ успешно создан",
+                        itemsCount = orderDto.OrderItems.Count
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, new { message = "Произошла ошибка при создании заказа", error = ex.Message });
+                }
+            }
         }
 
-        [HttpPut]
-        public JsonResult Put(Order order)
+        // GET: api/Orders/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            string query = @"
-                           update dbo.Orders
-                           set Date= @Date,
-                            where OrderId=@OrderId
-                            ";
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            if (order == null)
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@OrderId", order.OrderId);
-                    myCommand.Parameters.AddWithValue("@Date", order.Date);
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
+                return NotFound();
             }
 
-            return new JsonResult("Заказ обновлен");
-        }
-
-        [HttpDelete("{id}")]
-        public JsonResult Delete(int id)
-        {
-            string query = @"
-                           delete from dbo.Orders
-                            where OrderId=@OrderId
-                            ";
-
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@OrderId", id);
-
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
-
-            return new JsonResult("Заказ удален");
+            return order;
         }
     }
 }

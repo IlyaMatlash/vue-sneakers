@@ -22,25 +22,25 @@ namespace myApi.Controllers
         }
 
         [HttpGet]
-        public JsonResult Get()
+        public JsonResult Get([FromQuery] string sessionId)
         {
             string query = @"
-                            select FavoriteId, UserId, ProductId from
-                            dbo.Favorites
-                            ";
+                            SELECT f.FavoriteId, f.SessionId, f.ProductId 
+                            FROM dbo.Favorites f
+                            WHERE f.SessionId = @SessionId";
 
             DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
-            SqlDataReader myReader;
+             string sqlDataSource = _configuration.GetConnectionString("DefaultConnection");
             using (SqlConnection myCon = new SqlConnection(sqlDataSource))
             {
                 myCon.Open();
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
+                    myCommand.Parameters.AddWithValue("@SessionId", sessionId);
+                    using (SqlDataReader myReader = myCommand.ExecuteReader())
+                    {
+                        table.Load(myReader);
+                    }
                 }
             }
 
@@ -57,34 +57,7 @@ namespace myApi.Controllers
         {
             myCon.Open();
             
-            // Если пользователя нет, создаём гостевого пользователя
-            string checkUserQuery = @"SELECT COUNT(1) FROM dbo.Users WHERE UserId = @UserId";
-            using (SqlCommand cmd = new SqlCommand(checkUserQuery, myCon))
-            {
-                cmd.Parameters.AddWithValue("@UserId", favorite.UserId);
-                int userExists = (int)cmd.ExecuteScalar();
-                if (userExists == 0)
-                {
-                    // Создаем нового гостевого пользователя
-                    string insertUserQuery = @"
-                    INSERT INTO dbo.Users (FirstName, LastName, Patronymic, Email, Password, Role)
-                    VALUES (@FirstName, @LastName, @Patronymic, @Email, @Password, @Role);
-                    SELECT SCOPE_IDENTITY();";
-                    using (SqlCommand insertCmd = new SqlCommand(insertUserQuery, myCon))
-                    {
-                        insertCmd.Parameters.AddWithValue("@FirstName", "Guest");
-                        insertCmd.Parameters.AddWithValue("@LastName", "Guest");
-                        insertCmd.Parameters.AddWithValue("@Patronymic", "Guest");
-                        insertCmd.Parameters.AddWithValue("@Email", "Guest");
-                        insertCmd.Parameters.AddWithValue("@Password", "Guest");
-                        insertCmd.Parameters.AddWithValue("@Role", "Guest");
-                        int newUserId = Convert.ToInt32(insertCmd.ExecuteScalar());
-                        favorite.UserId = newUserId;
-                    }
-                }
-            }
-            
-            // Проверяем существование продукта (аналогично предыдущему примеру)
+            // Проверяем существование продукта
             string productQuery = @"SELECT COUNT(1) FROM dbo.Products WHERE ProductId = @ProductId";
             using (SqlCommand productCommand = new SqlCommand(productQuery, myCon))
             {
@@ -95,12 +68,12 @@ namespace myApi.Controllers
                     return new JsonResult(new { error = "Продукт не найден" }) { StatusCode = 404 };
                 }
             }
-            // Проверяем дубликаты и добавляем запись в избранное (как в предыдущем примере)
+            // Проверяем дубликаты
             string duplicateQuery = @"SELECT COUNT(1) FROM dbo.Favorites 
-                                    WHERE UserId = @UserId AND ProductId = @ProductId";
+                                    WHERE SessionId = @SessionId AND ProductId = @ProductId";
             using (SqlCommand duplicateCommand = new SqlCommand(duplicateQuery, myCon))
             {
-                duplicateCommand.Parameters.AddWithValue("@UserId", favorite.UserId);
+                duplicateCommand.Parameters.AddWithValue("@SessionId", favorite.SessionId);
                 duplicateCommand.Parameters.AddWithValue("@ProductId", favorite.ProductId);
                 int duplicateExists = (int)duplicateCommand.ExecuteScalar();
                 if (duplicateExists > 0)
@@ -108,12 +81,13 @@ namespace myApi.Controllers
                     return new JsonResult(new { error = "Товар уже в избранном" }) { StatusCode = 400 };
                 }
             }
-            string insertQuery = @"INSERT INTO dbo.Favorites (UserId, ProductId)
-                                 VALUES (@UserId, @ProductId);
-                                 SELECT SCOPE_IDENTITY();";
+            // Добавляем в избранное
+            string insertQuery = @"INSERT INTO dbo.Favorites (SessionId, ProductId)
+                                VALUES (@SessionId, @ProductId);
+                                SELECT SCOPE_IDENTITY();";
             using (SqlCommand insertCommand = new SqlCommand(insertQuery, myCon))
             {
-                insertCommand.Parameters.AddWithValue("@UserId", favorite.UserId);
+                insertCommand.Parameters.AddWithValue("@SessionId", favorite.SessionId);
                 insertCommand.Parameters.AddWithValue("@ProductId", favorite.ProductId);
                 int newId = Convert.ToInt32(insertCommand.ExecuteScalar());
                 return new JsonResult(new { id = newId, message = "Товар успешно добавлен в избранное" });
@@ -131,7 +105,7 @@ namespace myApi.Controllers
         {
             string query = @"
                            update dbo.Favorites
-                           set UserId= @UserId, ProductId= @ProductId
+                           set SessionId= @SessionId, ProductId= @ProductId
                             where FavoriteId=@FavoriteId
                             ";
 
@@ -144,7 +118,7 @@ namespace myApi.Controllers
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
                     myCommand.Parameters.AddWithValue("@FavoriteId", favorite.FavoriteId);
-                    myCommand.Parameters.AddWithValue("@UserId", favorite.UserId);
+                    myCommand.Parameters.AddWithValue("@SessionId", favorite.SessionId);
                     myCommand.Parameters.AddWithValue("@ProductId", favorite.ProductId);
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader);

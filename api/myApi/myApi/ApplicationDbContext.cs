@@ -17,7 +17,7 @@ namespace myApi.Data
             // Configure relationships
             modelBuilder.Entity<Order>()
                 .HasMany(o => o.OrderItems)
-                .WithOne()
+                .WithOne(oi => oi.Order)
                 .HasForeignKey(oi => oi.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<OrderItem>()
