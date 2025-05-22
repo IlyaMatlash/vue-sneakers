@@ -1,5 +1,7 @@
 <script setup>
 import CartItemCalculator from './CartItemCalculator.vue';
+import { getFirstImage } from '../utils/imageUtils';
+
 const emit = defineEmits(['onClickRemove', 'update:quantity', 'update:totalPrice'])
 
 defineProps({
@@ -7,7 +9,7 @@ defineProps({
   Name: String,
   Description: String,
   Images: {
-    type: Array,
+    type: [String, Array],
     default: () => []
   },
   Price: Number,
@@ -22,7 +24,7 @@ defineProps({
   <div class="flex border border-slate-200 p-4 rounded-xl gap-4">
     <img 
       class="w-20 h-16 object-cover rounded-lg" 
-      :src="Array.isArray(Images) && Images.length > 0 ? Images[0] : (typeof Images === 'string' ? Images : '/sneakers/default-image.jpg')"
+      :src="getFirstImage(Images)"
       :alt="Name"
     />
 

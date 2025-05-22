@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import Card from './Card.vue'
 import CardModal from './CardModal.vue';
+import ImageCarousel from './ImageCarousel.vue';
 
 const props = defineProps({
   items: Array,

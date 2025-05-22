@@ -1,4 +1,6 @@
 <script setup>
+import { getFirstImage } from '../utils/imageUtils';
+
 const props = defineProps({
   Productid: Number,
   Name: String,
@@ -35,7 +37,7 @@ const visibleFavoriteButton = Boolean(props.onClickAdd)
       class="absolute top-8 left-8 mb-5"
       alt="Like"
     />
-    <img class="w-full" :src="typeof Images === 'string' ? Images : Images[0]" :alt="Name" />
+    <img class="w-full" :src="getFirstImage(Images)" :alt="Name" />
     <p class="mt-2 text-left">{{ Name }}</p>
 
     <div class="flex justify-between mt-5">

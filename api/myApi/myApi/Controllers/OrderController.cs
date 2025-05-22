@@ -93,17 +93,17 @@ namespace YourNamespace.Controllers
         // GET: api/Orders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
-        {
-            var order = await _context.Orders
-                .Include(o => o.OrderItems)
-                .FirstOrDefaultAsync(o => o.OrderId == id);
-
-            if (order == null)
             {
+                var order = await _context.Orders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+
+                if (order == null)
+                {
                 return NotFound();
-            }
+                        }
 
             return order;
-        }
+    }
     }
 }

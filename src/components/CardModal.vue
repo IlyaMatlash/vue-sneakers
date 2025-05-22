@@ -1,57 +1,67 @@
 <script setup>
-import { defineProps, defineEmits, ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { parseImagePaths } from '../utils/imageUtils';
 
 const props = defineProps({
-  item: Object,
+  item: {
+    type: Object,
+    required: true
+  },
   isFavorite: Boolean,
   isAdded: Boolean
 });
 
 const emit = defineEmits(['close', 'add-to-favorite', 'add-to-cart']);
 
-// Состояние для хранения выбранного размера
-const selectedSize = ref(null);
-// Состояние для отслеживания добавления в корзину
-const isItemInCart = ref(props.isAdded);
-
-const selectSize = (size) => {
-  selectedSize.value = size;
-  // Проверяем, есть ли товар с этим размером в корзине
-  checkIfItemInCart();
-};
-
-// Проверка наличия товара в корзине
-const checkIfItemInCart = () => {
-  if (!props.item || !props.item.ProductId) return;
-  
-  const storageKey = selectedSize.value 
-    ? `cartItem_${props.item.ProductId}_${selectedSize.value}` 
-    : `cartItem_${props.item.ProductId}`;
-  
-  isItemInCart.value = localStorage.getItem(storageKey) === 'true';
-};
-
 const closeModal = () => {
   emit('close');
 };
 
-// Функция для добавления в корзину с выбранным размером
+const selectedSize = ref('');
+const isItemInCart = ref(false);
+
+// Проверка, есть ли товар в корзине
+const checkIfItemInCart = () => {
+  const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+  isItemInCart.value = cartItems.some(
+    item => item.ProductId === props.item.ProductId && item.selectedSize === selectedSize.value
+  );
+};
+
 const addToCart = () => {
-  if (selectedSize.value) {
-    emit('add-to-cart', { ...props.item, selectedSize: selectedSize.value });
-    isItemInCart.value = true;
+  if (!selectedSize.value) return;
+  
+  const cartItem = {
+    ...props.item,
+    selectedSize: selectedSize.value,
+    quantity: 1
+  };
+  
+  const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+  const existingItemIndex = cartItems.findIndex(
+    item => item.ProductId === props.item.ProductId && item.selectedSize === selectedSize.value
+  );
+  
+  if (existingItemIndex !== -1) {
+    cartItems[existingItemIndex].quantity += 1;
   } else {
-    // Можно добавить уведомление о необходимости выбрать размер
-    alert('Пожалуйста, выберите размер');
+    cartItems.push(cartItem);
   }
+  
+  localStorage.setItem('cart', JSON.stringify(cartItems));
+  isItemInCart.value = true;
+  
+  // Отправляем событие о добавлении товара в корзину
+  window.dispatchEvent(new CustomEvent('cart-item-added', { 
+    detail: { 
+      productId: props.item.ProductId,
+      selectedSize: selectedSize.value 
+    } 
+  }));
+  
+  emit('add-to-cart', { ...props.item, selectedSize: selectedSize.value });
 };
 
-// Функция для добавления в избранное
-const toggleFavorite = () => {
-  emit('add-to-favorite', props.item);
-};
-
-// Обработчики событий для синхронизации состояния
 const handleCartItemAdded = (event) => {
   if (props.item && event.detail.productId === props.item.ProductId && 
       event.detail.selectedSize === selectedSize.value) {
@@ -82,15 +92,15 @@ onBeforeUnmount(() => {
 });
 
 // Преобразование строки размеров в массив, если это необходимо
-const sizes = Array.isArray(props.item?.Sizes) 
-  ? props.item.Sizes 
-  : props.item?.Sizes?.split(',') || [];
+const sizes = computed(() => {
+  if (!props.item?.Sizes) return [];
+  return Array.isArray(props.item.Sizes) 
+    ? props.item.Sizes 
+    : props.item.Sizes.split(',').map(size => size.trim()).filter(Boolean);
+});
 
-// Получение первого изображения, если Images - это массив
-const mainImage = Array.isArray(props.item?.Images) 
-  ? props.item.Images[0] 
-  : props.item?.Images;
-
+// Получение массива изображений
+const images = computed(() => parseImagePaths(props.item?.Images));
 </script>
 
 <template>
@@ -107,82 +117,84 @@ const mainImage = Array.isArray(props.item?.Images)
       
       <!-- Основное содержимое -->
       <div class="flex flex-col md:flex-row p-4 md:p-8 pt-0">
-        <!-- Изображение товара -->
+        <!-- Карусель изображений товара -->
         <div class="md:w-1/2 md:pr-8">
-          <div class="bg-gray-50 rounded-xl overflow-hidden">
-            <img :src="mainImage" :alt="item.Name" class="w-full h-auto object-contain aspect-square">
-          </div>
+          <ImageCarousel :images="images" />
         </div>
         
         <!-- Информация о товаре -->
-        <div class="md:w-1/2 flex flex-col mt-6 md:mt-0">
-          <h2 class="text-2xl font-bold mb-2">{{ item.Name }}</h2>
-          <p class="text-2xl font-bold mb-6">{{ item.Price }} ₽</p>
+        <div class="md:w-1/2 mt-6 md:mt-0">
+          <h2 class="text-2xl font-bold">{{ item.Name }}</h2>
+          <p class="text-gray-600 mt-2">{{ item.Description }}</p>
+          
+          <div class="mt-6">
+            <p class="text-xl font-bold">{{ item.Price }} руб.</p>
+          </div>
           
           <!-- Выбор размера -->
-          <div class="mb-6">
-            <h3 class="text-sm font-medium mb-3">Выберите размер</h3>
-            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              <button 
-                v-for="size in sizes" 
-                :key="size" 
-                @click="selectSize(size)"
-                :class="[
-                  'border rounded-lg py-3 text-center transition-colors',
-                  selectedSize === size 
-                    ? 'border-sky-500 bg-sky-500 text-white' 
-                    : 'border-gray-300 hover:border-gray-400'
-                ]"
+          <div class="mt-6">
+            <p class="font-medium mb-2">Выберите размер:</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="size in sizes"
+                :key="size"
+                @click="selectedSize = size"
+                class="px-4 py-2 border rounded-md transition-colors"
+                :class="selectedSize === size ? 'bg-sky-500 text-white' : 'hover:bg-gray-100'"
               >
                 {{ size }}
               </button>
             </div>
+            <p v-if="!selectedSize && isItemInCart" class="text-red-500 text-sm mt-2">
+              Пожалуйста, выберите размер
+            </p>
           </div>
           
           <!-- Кнопки действий -->
-          <div class="flex flex-col gap-3 mt-auto">
-            <button 
+          <div class="mt-8 flex flex-col space-y-4">
+            <button
               @click="addToCart"
-              :disabled="!selectedSize" 
-              class="w-full bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              class="w-full py-3 px-6 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!selectedSize || isItemInCart"
             >
-              {{ isItemInCart ? 'В корзине' : 'Добавить в корзину' }}
+              {{ isItemInCart ? 'Товар в корзине' : 'Добавить в корзину' }}
             </button>
             
-            <div class="flex gap-3">
-              <button 
-                @click="toggleFavorite"
-                class="flex items-center justify-center gap-2 border 
-                border-gray-300 rounded-lg py-3 px-6 
-                hover:border-gray-400 transition-colors flex-1"
-              >
-                <img
-                  :src="!item.isFavorite ? '/like-1.svg' : '/like-2.svg'"
-                  class="w-5 h-5"
-                  alt="Like"
-                />
-                <span>{{ isFavorite ? 'В избранном' : 'В избранное' }}</span>
-              </button>
-            </div>
+            <button
+              @click="$emit('add-to-favorite', item)"
+              class="w-full py-3 px-6 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
+            >
+              <img :src="!isFavorite ? '/like-1.svg' : '/like-2.svg'" class="w-5 h-5 mr-2" alt="Like" />
+              {{ isFavorite ? 'Убрать из избранного' : 'Добавить в избранное' }}
+            </button>
           </div>
           
-          <!-- Детали товара -->
-          <div class="mt-8 border-t border-gray-200 pt-6">
-            <h3 class="text-sm font-medium mb-4">Детали товара</h3>
-            <div class="space-y-3 text-sm">
-              <p><span class="text-gray-500">Артикул:</span> {{ item.ProductId }}</p>
-              <p><span class="text-gray-500">Категория:</span> {{ item.Category }}</p>
-              <p v-if="item.Season"><span class="text-gray-500">Сезон:</span> {{ item.Season }}</p>
-              <p v-if="item.Color"><span class="text-gray-500">Цвет:</span> {{ item.Color }}</p>
-              <p v-if="item.Material"><span class="text-gray-500">Материал:</span> {{ item.Material }}</p>
-              <p v-if="item.Features"><span class="text-gray-500">Особенности:</span> {{ item.Features }}</p>
+          <!-- Дополнительная информация о товаре -->
+          <div class="mt-8 border-t pt-6">
+            <div v-if="item.Brands" class="mb-4">
+              <p class="font-medium">Бренд:</p>
+              <p class="text-gray-600">{{ item.Brands }}</p>
             </div>
-          </div>
-          
-          <!-- Описание товара -->
-          <div class="mt-6 border-t border-gray-200 pt-6">
-            <h3 class="text-sm font-medium mb-4">Описание</h3>
-            <p class="text-sm text-gray-600">{{ item.Description }}</p>
+            
+            <div v-if="item.Material" class="mb-4">
+              <p class="font-medium">Материал:</p>
+              <p class="text-gray-600">{{ item.Material }}</p>
+            </div>
+            
+            <div v-if="item.Color" class="mb-4">
+              <p class="font-medium">Цвет:</p>
+              <p class="text-gray-600">{{ item.Color }}</p>
+            </div>
+            
+            <div v-if="item.Season" class="mb-4">
+              <p class="font-medium">Сезон:</p>
+              <p class="text-gray-600">{{ item.Season }}</p>
+            </div>
+            
+            <div v-if="item.Features" class="mb-4">
+              <p class="font-medium">Особенности:</p>
+              <p class="text-gray-600">{{ item.Features }}</p>
+            </div>
           </div>
         </div>
       </div>

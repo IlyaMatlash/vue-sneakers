@@ -9,6 +9,7 @@ import Favorites from './pages/Favorites.vue'
 import Admin from './pages/Admin.vue'
 import AnswersPage from './pages/AnswersPage.vue'
 
+import ImageCarousel from './components/ImageCarousel.vue'
 const app = createApp(App)
 
 const cart = reactive({
@@ -42,7 +43,7 @@ const router = createRouter({
     return { top: 0 }
   }
 })
-
+app.component('ImageCarousel', ImageCarousel)
 app.use(router)
 app.use(autoAnimatePlugin)
 

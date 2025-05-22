@@ -60,13 +60,12 @@ const createOrder = async () => {
 
     if (response.status === 201 || response.status === 200) {
       cart.value = [];
-      // Установка ID заказа для отображения сообщения об успехе
       orderId.value = response.data.id;
       resetForm();
       localStorage.setItem('lastOrderId', orderId.value);
       setTimeout(() => {
         closeDrawer();
-      }, 3000);
+      }, 5000);
     } else {
       throw new Error('Неожиданный ответ от сервера');
     }
@@ -74,30 +73,23 @@ const createOrder = async () => {
     console.error('Ошибка при создании заказа:', error);
     
     if (error.response) {
-      // Сервер вернул ошибку со статусом
       if (error.response.status === 400) {
-        // Ошибка валидации
         if (error.response.data.errors) {
-          // Если сервер вернул объект с ошибками валидации
           const validationErrors = Object.values(error.response.data.errors).flat();
           errorMessage.value = validationErrors.join(', ');
         } else {
           errorMessage.value = error.response.data.title || error.response.data.message || 'Ошибка валидации данных';
         }
       } else if (error.response.status === 500) {
-        // Внутренняя ошибка сервера
         errorMessage.value = 'Произошла внутренняя ошибка сервера. Пожалуйста, попробуйте позже.';
       } else if (error.response.status === 404) {
-        // API не найден
         errorMessage.value = 'Сервис оформления заказов временно недоступен. Пожалуйста, попробуйте позже.';
       } else {
         errorMessage.value = error.response.data.message || 'Произошла ошибка при оформлении заказа';
       }
     } else if (error.request) {
-      // Запрос был сделан, но ответ не получе��
       errorMessage.value = 'Сервер не отвечает. Пожалуйста, проверьте подключение к интернету.';
     } else {
-      // Ошибка при настройке запроса
       errorMessage.value = 'Произошла ошибка при оформлении заказа. Пожалуйста, попробуйте снова.';
     }
   } finally {
@@ -119,7 +111,6 @@ const resetForm = () => {
 const cartIsEmpty = computed(() => cart.value.length === 0);
 const ButtonDisabled = computed(() => isCreating.value || cartIsEmpty.value || !isFormValid.value);
 
-// Validation logic
 const isFormValid = computed(() => {
   return recipientName.value && recipientAddress.value && 
   postalCode.value && phoneNumber.value && 
@@ -167,7 +158,6 @@ const isFormValid = computed(() => {
             <label for="recipientName" class="font-medium mt-2">ФИО получателя</label>
             <input id="recipientName" v-model="recipientName" placeholder="ФИО" class="border rounded p-3" />
           </div>
-          <!-- ... existing code ... -->
           <div class="flex flex-col">
             <label for="recipientAddress" class="font-medium mt-2">Адрес получателя</label>
             <input id="recipientAddress" v-model="recipientAddress" placeholder="Страна, Город, Улица, Дом, Квартира" class="border rounded p-3" />
@@ -190,11 +180,11 @@ const isFormValid = computed(() => {
           </div>
           <div class="flex items-center">
             <input type="radio" id="deliveryCDEK" value="CDEK" v-model="deliveryMethod" class="mr-3" />
-            <label for="deliveryCDEK" class="font-medium">CDEK</label>
+            <label for="deliveryCDEK" class="font-medium">CDEK (Оплата при получении)</label>
           </div>
           <div class="flex items-center">
             <input type="radio" id="deliveryRussianPost" value="RussianPost" v-model="deliveryMethod" class="mr-3" />
-            <label for="deliveryRussianPost" class="font-medium">Почта России</label>
+            <label for="deliveryRussianPost" class="font-medium">Почта России (Оплата при получении)</label>
           </div>
 
           <div class="flex gap-2 mt-4">
