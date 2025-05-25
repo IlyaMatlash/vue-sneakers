@@ -114,4 +114,18 @@ const careItems = [
       </div>
     </div>
   </div>
+  <div class="relative mt-12">
+      <div class="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+        <div class="px-4 sm:px-6 lg:px-8">
+          <router-link to="/" class="block">
+            <img 
+              src="/banner_2.png" 
+              alt="Shoe Care Banner"
+              class="w-full h-auto object-cover rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity
+                     aspect-[16/9] sm:aspect-[20/9] md:aspect-[24/9] lg:aspect-[28/9] xl:aspect-[32/9]"
+            />
+          </router-link>
+        </div>
+      </div>
+    </div>
 </template>

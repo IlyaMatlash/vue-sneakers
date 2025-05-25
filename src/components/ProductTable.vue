@@ -20,6 +20,7 @@
         >
           {{ header }}
         </th>
+        <th class="border border-slate-300 p-2">Действия</th>
       </tr>
     </thead>
     <tbody>
@@ -55,22 +56,29 @@
     </tbody>
   </table>
 
+  <!-- Модальное окно с поддержкой скролла -->
   <div
-    class="fixed inset-0 flex justify-center items-center z-30"
+    class="fixed inset-0 z-30 overflow-y-auto"
     v-if="showModal"
   >
-  <!-- <div @click="showModal = false" class="fixed inset-0 bg-black opacity-70">  
-  </div> -->
-    <div class="modal-dialog modal-md bg-white w-full max-w-[50rem] max-h-[90vh] rounded-lg shadow-lg">
-      <div class="modal-content p-12">
-        <div class="flex justify-between modal-header mb-6">
-          <h5 class="modal-title text-lg font-bold text-gray-900">
-            {{ editedRow ? 'Редактировать' : 'Добавить' }}
+    <!-- Overlay -->
+    <div 
+      class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+      @click="closeModal"
+    ></div>
+    
+    <!-- Modal container -->
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative bg-white w-full max-w-2xl rounded-lg shadow-xl transform transition-all">
+        <!-- Modal header - фиксированный -->
+        <div class="flex justify-between items-center p-6 border-b border-gray-200">
+          <h5 class="text-xl font-bold text-gray-900">
+            {{ isEditMode ? 'Редактировать товар' : 'Добавить товар' }}
           </h5>
           <button
             type="button"
-            class="text-gray-400 hover:text-gray-900 transition duration-300"
-            @click="showModal = false"
+            class="text-gray-400 hover:text-gray-600 transition duration-300 p-1"
+            @click="closeModal"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -88,44 +96,77 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body mb-8">
-          <form @submit.prevent="editedRow ? updateRow() : createRow()">
-            <div class="mb-4" v-for="(header, index) in headerItemsProduct.slice(1)" :key="index">
-              <label :for="header" class="block text-gray-700 text-sm font-bold mb-2">{{
-                header
-              }}</label>
-              <input
-                v-if="header !== 'Image'"
-                type="text"
-                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                :id="header"
-                :placeholder="header"
-                v-model="formData[header]"
-              />
-              <input
-                v-else
-                type="file"
-                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                :id="header"
-                @change="handleFileChange($event, header)"
-              />
+
+        <!-- Modal body - -->
+        <div class="max-h-[60vh] overflow-y-auto p-6">
+          <form @submit.prevent="isEditMode ? updateRow() : createRow()">
+            <!-- Отображение ошибок -->
+            <div v-if="Object.keys(errors).length > 0" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div v-for="(error, field) in errors" :key="field" class="text-red-600 text-sm">
+                <strong>{{ field }}:</strong> {{ error }}
+              </div>
             </div>
-            <div class="modal-footer flex justify-between">
-              <button
-                type="submit"
-                class="bg-green-200 hover:bg-green-300 transition duration-300 text-black font-medium py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-6"
-              >
-                {{ editedRow ? 'Сохранить изменения' : 'Добавить' }}
-              </button>
-              <button
-                type="button"
-                class="bg-red-200 hover:bg-red-300 transition duration-300 text-gray-700 font-medium py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                @click="showModal = false"
-              >
-                Закрыть
-              </button>
+
+            <div class="space-y-4">
+              <div v-for="(header, index) in headerItemsProduct.slice(1)" :key="index">
+                <label :for="header" class="block text-gray-700 text-sm font-medium mb-2">
+                  {{ header }}
+                  <span v-if="['Name', 'Price', 'Description'].includes(header)" class="text-red-500">*</span>
+                </label>
+                <input
+                  v-if="header !== 'Images'"
+                  :type="header === 'Price' ? 'number' : 'text'"
+                  :step="header === 'Price' ? '0.01' : undefined"
+                  :min="header === 'Price' ? '0' : undefined"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-200"
+                  :id="header"
+                  :placeholder="header"
+                  v-model="formData[header]"
+                  :class="{ 'border-red-500': errors[header] }"
+                />
+                <input
+                  v-else
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-200"
+                  :id="header"
+                  @change="handleFileChange($event, header)"
+                  :class="{ 'border-red-500': errors.Images }"
+                  ref="imageInput"
+                />
+              </div>
             </div>
           </form>
+        </div>
+
+        <!-- Modal footer - фиксированный -->
+        <div class="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <button
+            type="button"
+            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+            @click="closeModal"
+            :disabled="isLoading"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            @click="isEditMode ? updateRow() : createRow()"
+            class="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            :disabled="isLoading"
+          >
+            <span v-if="isLoading" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Сохранение...
+            </span>
+            <span v-else>
+              {{ isEditMode ? 'Сохранить изменения' : 'Добавить товар' }}
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -133,7 +174,7 @@
 </template>
 
 <script setup>
-import { defineProps, ref, onMounted, computed } from 'vue'
+import { defineProps, ref, onMounted, reactive } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
@@ -150,38 +191,56 @@ const props = defineProps({
     required: true
   }
 })
+
 const showModal = ref(false)
-const editedRow = ref(null)
-const newRow = ref(null)
+const isEditMode = ref(false)
+const editingProductId = ref(null)
 const errors = ref({})
 const isLoading = ref(false)
+const imageInput = ref(null)
+const selectedFiles = ref(null)
+
+// Реактивные данные формы
+const formData = reactive({
+  Name: '',
+  Description: '',
+  Price: '',
+  Images: '',
+  Brand: '',
+  Sizes: '',
+  Category: '',
+  Season: '',
+  Color: '',
+  Material: '',
+  Features: ''
+})
 
 // Валидация формы
 const validateForm = (data) => {
-  const errors = {}
+  const validationErrors = {}
   
   if (!data.Name?.trim()) {
-    errors.Name = 'Название обязательно'
+    validationErrors.Name = 'Название обязательно'
   }
   
-  if (!data.Price || data.Price <= 0) {
-    errors.Price = 'Цена должна быть больше 0'
+  if (!data.Price || parseFloat(data.Price) <= 0) {
+    validationErrors.Price = 'Цена должна быть больше 0'
   }
   
   if (!data.Description?.trim()) {
-    errors.Description = 'Описание обязательно'
+    validationErrors.Description = 'Описание обязательно'
   }
   
-  return errors
+  return validationErrors
 }
 
 // Валидация изображений
 const validateImage = (file) => {
   const maxSize = 5 * 1024 * 1024 // 5MB
-  const allowedTypes = ['image/jpeg', 'image/png']
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
   
   if (!allowedTypes.includes(file.type)) {
-    return 'Разрешены только JPEG и PNG'
+    return 'Разрешены только JPEG, JPG и PNG'
   }
   
   if (file.size > maxSize) {
@@ -190,132 +249,301 @@ const validateImage = (file) => {
   
   return null
 }
-const formData = computed(() => {
-  return editedRow.value ? editedRow.value : newRow.value;
-});
-
-
-const rowsProduct = ref(props.rowsProduct)
-const headerItemsProduct = ref(props.headerItemsProduct)
-
-onMounted(async () => {
-  try {
-    const response = await axios.get(`${props.apiEndpoint}`)
-    headerItemsProduct.push(...response.data)
-  } catch (error) {
-    console.error(error)
-  }
-})
 
 const emit = defineEmits(['createRow', 'updateRow', 'deleteRow'])
 
+// Очистка формы
+const clearForm = () => {
+  Object.keys(formData).forEach(key => {
+    if (key === 'Price') {
+      formData[key] = ''
+    } else {
+      formData[key] = ''
+    }
+  })
+  selectedFiles.value = null
+  errors.value = {}
+  
+  // Очищаем input файлов
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
+}
+
+// Закрытие модального окна
+const closeModal = () => {
+  showModal.value = false
+  isEditMode.value = false
+  editingProductId.value = null
+  clearForm()
+}
+
+// Загрузка изображений
+const uploadImages = async (files) => {
+  const uploadedImages = []
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    const imageError = validateImage(file)
+    
+    if (imageError) {
+      throw new Error(imageError)
+    }
+    
+    try {
+      const imageFormData = new FormData()
+      imageFormData.append("file", file)
+      
+      await axios.post(`${props.apiEndpoint}/SaveFile`, imageFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      const imageName = file.name
+      const imagePath = `http://localhost:5173/sneakers/${imageName}`
+      uploadedImages.push(imagePath)
+    } catch (uploadError) {
+      console.error('Error uploading image:', uploadError)
+      throw new Error('Ошибка при загрузке изображения')
+    }
+  }
+  
+  return uploadedImages
+}
+
+// Создание товара
 const createRow = async () => {
   try {
     isLoading.value = true
+    errors.value = {}
     
     // Валидация формы
-    const formErrors = validateForm(newRow.value)
+    const formErrors = validateForm(formData)
     if (Object.keys(formErrors).length > 0) {
       errors.value = formErrors
       return
     }
 
-    const formData = new FormData();
-    formData.append("Name", newRow.value.Name);
-    formData.append("Description", newRow.value.Description);
-    formData.append("Price", newRow.value.Price);
-    formData.append("Brand", newRow.value.Brand);
-    
-    // Обработка множественных размеров
-    if (Array.isArray(newRow.value.Sizes)) {
-      formData.append("Sizes", newRow.value.Sizes.join(','));
-    } else {
-      formData.append("Sizes", newRow.value.Sizes || '');
+    // Подготовка данных для отправки
+    const productData = {
+      Name: formData.Name,
+      Description: formData.Description,
+      Price: parseFloat(formData.Price),
+      Brand: formData.Brand || '',
+      Sizes: formData.Sizes || '',
+      Category: formData.Category || '',
+      Season: formData.Season || '',
+      Color: formData.Color || '',
+      Material: formData.Material || '',
+      Features: formData.Features || '',
+      Images: ''
     }
     
-    // Обработка множественных изображений
-    const imageInput = document.querySelector('#Images');
-    if (imageInput.files.length > 0) {
-      const images = [];
-      for (let i = 0; i < imageInput.files.length; i++) {
-        const file = imageInput.files[i];
-        const imageName = file.name;
-        const imagePath = `http://localhost:5173/sneakers/${imageName}`;
-        images.push(imagePath);
-        const imageError = validateImage(file)
-        
-        if (imageError) {
-          errors.value.image = imageError
-          return
-        }
-        
-        // Загрузка каждого изображения
-        const imageFormData = new FormData();
-        imageFormData.append("file", file);
-        await axios.post(`${props.apiEndpoint}/SaveFile`, imageFormData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+    // Обработка изображений если они есть
+    if (selectedFiles.value && selectedFiles.value.length > 0) {
+      try {
+        const uploadedImages = await uploadImages(selectedFiles.value)
+        productData.Images = uploadedImages.join(',')
+      } catch (imageError) {
+        errors.value.Images = imageError.message
+        return
       }
-      formData.append("Images", images.join(','));
     }
-    formData.append("Category", newRow.value.Category);
-    formData.append("Season", newRow.value.Season);
-    formData.append("Color", newRow.value.Color);
-    formData.append("Material", newRow.value.Material);
-    formData.append("Features", newRow.value.Features);
     
-    const response = await axios.post(props.apiEndpoint, formData);
-    showModal.value = false;
-    editedRow.value = null;
+    // Отправка данных как JSON
+    const response = await axios.post(props.apiEndpoint, productData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    // Обновляем список товаров
+    emit('createRow', response.data)
+    
+    // Закрываем модальное окно
+    closeModal()
+    
+    // Перезагружаем данные
+    await refreshData()
+    
   } catch (error) {
     console.error('Error creating product:', error)
-    errors.value.submit = 'Ошибка при создании товара'
+    
+    if (error.response) {
+      if (error.response.status === 400) {
+        if (error.response.data.errors) {
+          // Обработка ошибок валидации от сервера
+          const serverErrors = {}
+          Object.keys(error.response.data.errors).forEach(field => {
+            serverErrors[field] = error.response.data.errors[field].join(', ')
+          })
+          errors.value = { ...errors.value, ...serverErrors }
+        } else {
+          errors.value.submit = error.response.data.message || 'Ошибка валидации данных'
+        }
+      } else if (error.response.status === 415) {
+        errors.value.submit = 'Неподдерживаемый тип содержимого'
+      } else {
+        errors.value.submit = error.response.data.message || 'Ошибка при создании товара'
+      }
+    } else {
+      errors.value.submit = 'Ошибка сети или сервера недоступен'
+    }
   } finally {
     isLoading.value = false
   }
-};
+}
 
-const openAddModal = () => {
-  newRow.value = {
-    Name: '',
-    Description: '',
-    Price: '',
-    Images: null,
-    Brands: '',
-    Sizes: '',
-    Seasons: '',
-    Colors: '',
-    Materials: '',
-    Features: ''
-  };
-  editedRow.value = null;
-  showModal.value = true;
-};
-
-const editRow = (row) => {
-  editedRow.value = { ...row };
-  newRow.value = null;
-  showModal.value = true;
-};
-
-const deleteRowAlert = (row) => {
-  if (confirm(`Вы точно хотите удалить запись ${row.Name}?`)) {
-    deleteRow(row)
-  }
-};
-
-const deleteRow = async (row) => {
-  if (!confirm(`Вы уверены что хотите удалить ${row.Name}?`)) {
-    return
-  }
+// Обновление товара
+const updateRow = async () => {
   try {
-    await axios.delete(`${props.apiEndpoint}/${row.id}`)
-    emit('deleteRow', row.id)
+    isLoading.value = true
+    errors.value = {}
+    
+    // Валидация ��ормы
+    const formErrors = validateForm(formData)
+    if (Object.keys(formErrors).length > 0) {
+      errors.value = formErrors
+      return
+    }
+
+    // Подготовка данных для отправки
+    const productData = {
+      Name: formData.Name,
+      Description: formData.Description,
+      Price: parseFloat(formData.Price),
+      Brand: formData.Brand || '',
+      Sizes: formData.Sizes || '',
+      Category: formData.Category || '',
+      Season: formData.Season || '',
+      Color: formData.Color || '',
+      Material: formData.Material || '',
+      Features: formData.Features || '',
+      Images: formData.Images // Сохраняем существующие изображения
+    }
+    
+    // Обработка новых изображений если они есть
+    if (selectedFiles.value && selectedFiles.value.length > 0) {
+      try {
+        const uploadedImages = await uploadImages(selectedFiles.value)
+        productData.Images = uploadedImages.join(',')
+      } catch (imageError) {
+        errors.value.Images = imageError.message
+        return
+      }
+    }
+    
+    // Отправка данных как JSON
+    const response = await axios.put(`${props.apiEndpoint}/${editingProductId.value}`, productData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    // Обновляем список товаров
+    emit('updateRow', response.data)
+    
+    // Закрываем модальное окно
+    closeModal()
+    
+    // Перезагружаем данные
+    await refreshData()
+    
   } catch (error) {
-    alert('Ошибка при удалении записи')
-    console.error(error)
+    console.error('Error updating product:', error)
+    
+    if (error.response) {
+      if (error.response.status === 400) {
+        if (error.response.data.errors) {
+          // Обработка ошибок валидации от сервера
+          const serverErrors = {}
+          Object.keys(error.response.data.errors).forEach(field => {
+            serverErrors[field] = error.response.data.errors[field].join(', ')
+          })
+          errors.value = { ...errors.value, ...serverErrors }
+        } else {
+          errors.value.submit = error.response.data.message || 'Ошибка валидации данных'
+        }
+      } else if (error.response.status === 415) {
+        errors.value.submit = 'Неподдержива��мый тип содержимого'
+      } else {
+        errors.value.submit = error.response.data.message || 'Ошибка при обновлении товара'
+      }
+    } else {
+      errors.value.submit = 'Ошибка сети или сервера недоступен'
+    }
+  } finally {
+    isLoading.value = false
   }
 }
+
+// Обработка изменения файлов
+const handleFileChange = (event, header) => {
+  const files = event.target.files
+  if (files && files.length > 0) {
+    selectedFiles.value = files
+  } else {
+    selectedFiles.value = null
+  }
+}
+
+// Открытие модального окна для добавления
+const openAddModal = () => {
+  clearForm()
+  isEditMode.value = false
+  editingProductId.value = null
+  showModal.value = true
+}
+
+// Открытие модального окна для редактирования
+const editRow = (row) => {
+  clearForm()
+  
+  // Заполняем форму данными товара
+  Object.keys(formData).forEach(key => {
+    if (row[key] !== undefined) {
+      formData[key] = row[key]
+    }
+  })
+  
+  isEditMode.value = true
+  editingProductId.value = row.id || row.Id
+  showModal.value = true
+}
+
+// Подтверждение удаления
+const deleteRowAlert = (row) => {
+  if (confirm(`Вы точно хотите удалить товар "${row.Name}"?`)) {
+    deleteRow(row)
+  }
+}
+
+// Удаление товара
+const deleteRow = async (row) => {
+  try {
+    const productId = row.id || row.Id
+    await axios.delete(`${props.apiEndpoint}/${productId}`)
+    emit('deleteRow', productId)
+    await refreshData()
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    alert('Ошибка при удалении товара')
+  }
+}
+
+// Обновление данных
+const refreshData = async () => {
+  try {
+    const response = await axios.get(props.apiEndpoint)
+    // Очищаем и обновляем массивы
+    props.rowsProduct.splice(0, props.rowsProduct.length, ...response.data)
+  } catch (error) {
+    console.error('Error refreshing data:', error)
+  }
+}
+
+onMounted(async () => {
+  await refreshData()
+})
 </script>

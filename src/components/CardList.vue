@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import Card from './Card.vue'
 import CardModal from './CardModal.vue';
-import ImageCarousel from './ImageCarousel.vue';
 
 const props = defineProps({
   items: Array,
@@ -26,7 +25,7 @@ const emit = defineEmits(['addToFavorite', 'addToCart'])
 </script>
 
 <template>
-  <div v-if="items.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" v-auto-animate>
+  <div v-if="items.length > 0" class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" v-auto-animate>
     <Card
       v-for="item in items"
       :key="item.id"

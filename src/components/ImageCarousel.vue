@@ -94,7 +94,7 @@ onBeforeUnmount(() => {
         <div 
           v-for="(image, index) in imageArray" 
           :key="index" 
-          class="w-full flex-shrink-0"
+          class="w-full flex-shrink-0 object-cover hover:scale-105 transition duration-300"
         >
           <img 
             :src="image" 
@@ -135,7 +135,7 @@ onBeforeUnmount(() => {
         :key="index"
         @click.stop="goToSlide(index)"
         class="w-3 h-3 rounded-full transition-all focus:outline-none"
-        :class="index === currentIndex ? 'bg-gray-800' : 'bg-gray-300 hover:bg-gray-400'"
+        :class="index === currentIndex ? 'bg-sky-500' : 'bg-gray-300 hover:bg-gray-400'"
         :aria-label="`Перейти к изображению ${index + 1}`"
       ></button>
     </div>

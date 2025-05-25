@@ -8,10 +8,23 @@ const props = defineProps({
     required: true
   },
   isFavorite: Boolean,
-  isAdded: Boolean
+  isAdded: Boolean,
+  discountPercent: {
+    type: Number,
+    default: 20
+  }
 });
 
 const emit = defineEmits(['close', 'add-to-favorite', 'add-to-cart']);
+
+// Вычисление цены со скидкой
+const discountedPrice = computed(() => {
+  const originalPrice = props.item?.Price
+  if (!originalPrice) return 0
+  
+  const discount = (originalPrice * props.discountPercent) / 100
+  return Math.round(originalPrice - discount)
+})
 
 const closeModal = () => {
   emit('close');
@@ -123,13 +136,28 @@ const images = computed(() => parseImagePaths(props.item?.Images));
         </div>
         
         <!-- Информация о товаре -->
-        <div class="md:w-1/2 mt-6 md:mt-0">
-          <h2 class="text-2xl font-bold">{{ item.Name }}</h2>
-          <p class="text-gray-600 mt-2">{{ item.Description }}</p>
+        <!-- Информация о товаре -->
+      <div class="md:w-1/2 mt-6 md:mt-0">
+        <h2 class="text-2xl font-bold">{{ item.Name }}</h2>
+        <p class="text-gray-600 mt-2">{{ item.Description }}</p>
+        
+        <!-- Блок с ценами -->
+        <div class="mt-6 flex items-center gap-3">
+          <!-- Старая цена зачеркнутая -->
+          <span class="text-sm text-gray-400 line-through">
+            {{ item.Price }} руб.
+          </span>
           
-          <div class="mt-6">
-            <p class="text-xl font-bold">{{ item.Price }} руб.</p>
-          </div>
+          <!-- Бейдж со скидкой -->
+          <span class="bg-[#EB5160] text-white text-xs px-2 py-1 rounded-md font-medium">
+            -{{ discountPercent }}%
+          </span>
+          
+          <!-- Новая цена со скидкой -->
+          <span class="text-xl font-bold text-[#EB5160]">
+            {{ discountedPrice }} руб.
+          </span>
+        </div>
           
           <!-- Выбор размера -->
           <div class="mt-6">
