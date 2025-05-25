@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, watch, ref, onMounted } from 'vue'
+import { reactive, watch, ref, onMounted, computed } from 'vue'
 import CardList from '../components/CardList.vue'
 import FilterSidebar from '../components/FilterSidebar.vue'
 import axios from 'axios'
@@ -42,24 +42,34 @@ const addToFavorite = async (item) => {
   }
 }
 
-// const fetchFavorites = async () => {
-//   try {
-//     const { data } = await axios.get('http://localhost:5072/api/favorite')
+// Добавляем состояние для мобильных фильтров
+const isFilterOpen = ref(false)
 
-//     items.value = items.value.map((item) => {
-//       const favorite = data.find((f) => f.ProductId === item.ProductId)
-//       const isFavorite = favorite || localStorage.getItem(`favorite_${item.ProductId}`) === 'true'
+// Вычисляем количество акти��ных фильтров
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filters.priceRange.min || filters.priceRange.max) count++
+  if (filters.brands.length) count++
+  if (filters.sizes.length) count++
+  if (filters.categories.length) count++
+  if (filters.seasons.length) count++
+  if (filters.colors.length) count++
+  if (filters.materials.length) count++
+  if (filters.features.length) count++
+  return count
+})
 
-//       return {
-//         ...item,
-//         isFavorite: isFavorite,
-//         FavoriteId: favorite ? favorite.FavoriteId : null
-//       }
-//     })
-//   } catch (error) {
-//     console.error('Error fetching favorites:', error)
-//   }
-// }
+// Закрываем фильтры при изменении размера экрана на десктоп
+onMounted(() => {
+  const handleResize = () => {
+    if (window.innerWidth >= 1024) {
+      isFilterOpen.value = false
+    }
+  }
+  
+  window.addEventListener('resize', handleResize)
+  return () => window.removeEventListener('resize', handleResize)
+})
 
 const fetchItems = async () => {
   try {
@@ -162,50 +172,134 @@ watch(
 </script>
 
 <template>
-  <div class="flex gap-8">
-    <!-- Основной контент -->
-    <div class="flex-1">
-      <div class="flex justify-left items-center gap-4">
-        <h2 class="text-3xl font-bold font-signate">Все кроссовки</h2>
-        <!-- <div class="flex gap-4">
-          <select
-            @change="onChangeSelect"
-            class="py-2 px-3 border border-slate-300 rounded-md outline-none"
-            name="sortSelect"
-            id="sortSelect"
-          >
-            <option value="Name">По Названию</option>
-            <option value="Price">Цена по убыванию</option>
-            <option value="-Price">Цена по возрастанию</option>
-          </select>
+  <div class="container mx-auto px-4 md:px-6 lg:px-8">
+    <div class="relative w-full aspect-[16/5] mb-8">
+        <img 
+          src="/banner_main.png" 
+          alt="Main Banner"
+          class="w-full h-full object-cover rounded-lg shadow-lg"
+        />
+      </div>
+    <h1 class="text-3xl md:text-3xl font-bold font-signate mb-6 lg:hidden">
+      Все кроссовки
+    </h1>
+    <!-- Мобильная кнопка фильтров -->
+    <div class="lg:hidden flex justify-between items-center mb-4">
+      <button 
+        @click="isFilterOpen = !isFilterOpen"
+        class="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+        </svg>
+        <span>Фильтры</span>
+        <!-- Бейдж с количеством активных фильтров -->
+        <span v-if="activeFiltersCount" class="ml-1 bg-sky-500 text-white text-xs px-2 py-0.5 rounded-full">
+          {{ activeFiltersCount }}
+        </span>
+      </button>
 
-          <div class="relative">
-            <img class="absolute left-4 top-3" src="/search.svg" alt="" />
-            <input
-              @input="onChangeSearchInput"
-              class="border rounded-md py-2 pl-10 pr-4 outline-none border-slate-300 focus:border-gray-400"
-              type="text"
-              placeholder="Поиск..."
-            />
+      <!-- Сортировка -->
+      <!-- <select
+        @change="onChangeSelect"
+        class="py-2 px-3 border border-gray-200 rounded-lg outline-none bg-white"
+        name="sortSelect"
+        id="sortSelect"
+      >
+        <option value="Name">По названию</option>
+        <option value="Price">Цена по убыванию</option>
+        <option value="-Price">Цена по возрастанию</option>
+      </select> -->
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6 relative">
+      <!-- Оверлей для мобильных фильтров -->
+      <div 
+        v-if="isFilterOpen" 
+        class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        @click="isFilterOpen = false"
+      ></div>
+      
+
+      <!-- Фильтры -->
+      <aside 
+        class="fixed lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:flex-shrink-0 w-[280px] bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto transform transition-transform duration-300 ease-in-out z-50 lg:z-auto lg:transform-none"
+        :class="{
+          'translate-x-0': isFilterOpen,
+          '-translate-x-full': !isFilterOpen,
+          'h-screen lg:h-auto fixed top-0 left-0': true
+        }"
+      >
+        <FilterSidebar 
+          v-model:filters="filters" 
+          @update:filters="handleFiltersUpdate"
+          @close="isFilterOpen = false"
+        />
+      </aside>
+
+      <!-- Основной контент -->
+      <main class="flex-1">
+        <!-- Заголовок и поиск (для десктопа) -->
+        <!-- <div class="hidden lg:flex justify-between items-center mb-6">
+          <h1 class="text-3xl font-bold font-signate">Все кроссовки</h1>
+          
+          <div class="flex items-center gap-4">
+            <select
+              @change="onChangeSelect"
+              class="py-2 px-3 border border-gray-200 rounded-lg outline-none bg-white"
+              name="sortSelect"
+              id="sortSelect"
+            >
+              <option value="Name">По названию</option>
+              <option value="Price">Цена по убыванию</option>
+              <option value="-Price">Цена по возрастанию</option>
+            </select>
+
+            <div class="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                @input="onChangeSearchInput"
+                class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-sky-500 transition-colors w-64"
+                type="text"
+                placeholder="Поиск..."
+              />
+            </div>
           </div>
         </div> -->
-      </div>
-      <div class="mt-10">
-        <CardList
-          :items="items"
-          @open-card-modal="openCardModal"
-          @add-to-favorite="addToFavorite"
-          @add-to-cart="onClickAddPlus"
-        />
-        <div v-if="!isLoading && items.length === 0" class="text-center py-10 text-gray-500">
-          Товары не найдены
+
+        
+
+        <!-- Мобильный поиск -->
+        <!-- <div class="relative mb-6 lg:hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            @input="onChangeSearchInput"
+            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-sky-500 transition-colors"
+            type="text"
+            placeholder="Поиск..."
+          />
+        </div> -->
+
+        <!-- Список товаров -->
+        <div class="min-h-[200px]">
+          <CardList
+            :items="items"
+            @open-card-modal="openCardModal"
+            @add-to-favorite="addToFavorite"
+            @add-to-cart="onClickAddPlus"
+          />
+          <div 
+            v-if="!isLoading && items.length === 0" 
+            class="text-center py-10 text-gray-500"
+          >
+            Товары не найдены
+          </div>
         </div>
-      </div>
+      </main>
     </div>
-    <!-- Боковой фильтр -->
-    <FilterSidebar 
-    v-model:filters="filters" 
-    @update:filters="handleFiltersUpdate"
-    class="sticky top-4" />
   </div>
 </template>
