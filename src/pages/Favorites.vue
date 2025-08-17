@@ -67,15 +67,6 @@ const handleToggleFavorite = async (item) => {
   await loadFavoriteProducts()
 }
 
-const openCardModal = (item) => {
-  selectedItem.value = item
-  modalIsOpen.value = true
-}
-
-const closeCardModal = () => {
-  modalIsOpen.value = false
-  selectedItem.value = null
-}
 
 onMounted(async () => {
   // Загружаем избранные товары
@@ -100,7 +91,7 @@ onMounted(async () => {
       Image="/emoji-1.png"
     />
     <div v-else>
-      <CardList 
+      <CardList class="lg:grid-cols-4"
         :items="favoriteItems"
         @add-to-favorite="handleToggleFavorite"
         @add-to-cart="onClickAddToCart"

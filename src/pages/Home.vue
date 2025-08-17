@@ -173,13 +173,18 @@ watch(
 
 <template>
   <div class="container mx-auto px-4 md:px-6 lg:px-8">
-    <div class="relative w-full aspect-[16/5] mb-8">
-        <img 
-          src="/banner_main.png" 
-          alt="Main Banner"
-          class="w-full h-full object-cover rounded-lg shadow-lg"
-        />
+    <div class="relative mb-12">
+      <div class="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+        <div class="sm:px-6 lg:px-8">
+          <img 
+            src="/banner_main.png" 
+            alt="Shoe Care Banner"
+            class="w-full h-auto object-cover rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity
+                    aspect-[16/9] sm:aspect-[20/9] md:aspect-[24/9] lg:aspect-[28/9] xl:aspect-[32/9]"
+          />
+        </div>
       </div>
+    </div>
     <h1 class="text-3xl md:text-3xl font-bold font-signate mb-6 lg:hidden">
       Все кроссовки
     </h1>

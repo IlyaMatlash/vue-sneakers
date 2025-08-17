@@ -44,15 +44,11 @@ const careItems = [
 </script>
 <template>
   <div class="max-w-4xl mx-auto">
-    <!-- Основная информация -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
       <h2 class="text-2xl font-medium mb-4">Правила ухода за обувью</h2>
       <p class="text-gray-600">Правильный уход за обувью не только продлевает срок её службы, но и сохраняет первоначальный внешний вид. Следуйте нашим рекомендациям для поддержания обуви в отличном состоянии.</p>
     </div>
-    
-    <!-- Карточки с рекомендациями -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <!-- Большая карточка на 4 колонки -->
       <div class="md:col-span-4 bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition duration-300">
         <div class="flex items-start gap-6">
           <img 
@@ -72,7 +68,6 @@ const careItems = [
           </div>
         </div>
       </div>
-      <!-- Вертикальная карточка на 2 колонки -->
       <div class="md:col-span-2 bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-300">
         <div class="flex flex-col items-center">
           <img 
@@ -90,7 +85,6 @@ const careItems = [
           </div>
         </div>
       </div>
-      <!-- Средние карточки на 2 колонки каждая -->
       <div 
         v-for="item in careItems.slice(2)" 
         :key="item.title"

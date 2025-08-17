@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 const contactInfo = ref({
-  phone: '8 800 555 35 35',
+  phone: '8 999 999 99 99',
   email: 'info@sneakers.ru',
   address: 'г. Москва, ул. Пушкина, д. 10',
   workingHours: 'Пн-Вс: 10:00 - 22:00'
@@ -20,7 +20,7 @@ const contactInfo = ref({
           <ul class="space-y-3">
             <li class="flex items-center">
               <span class="font-medium mr-2">Телефон:</span>
-              <a href="tel:88005553535" class="text-sky-500 hover:text-sky-600">{{ contactInfo.phone }}</a>
+              <a href="tel:89999999999" class="text-sky-500 hover:text-sky-600">{{ contactInfo.phone }}</a>
             </li>
             <li class="flex items-center">
               <span class="font-medium mr-2">Email:</span>

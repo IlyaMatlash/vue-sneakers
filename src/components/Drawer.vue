@@ -4,6 +4,7 @@ import { ref, inject, computed } from 'vue'
 import DrawerHead from './DrawerHead.vue'
 import CartItemList from './CartItemList.vue'
 import InfoBlock from './InfoBlock.vue'
+import { size } from 'lodash'
 
 const props = defineProps({
   totalPrice: Number,
